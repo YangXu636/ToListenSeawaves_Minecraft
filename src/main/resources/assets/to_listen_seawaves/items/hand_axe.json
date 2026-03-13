@@ -1,0 +1,7 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "to_listen_seawaves:item/hand_axe"
+  },
+  "oversized_in_gui": true
+}

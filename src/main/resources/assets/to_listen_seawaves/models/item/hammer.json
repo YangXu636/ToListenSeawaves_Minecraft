@@ -1,0 +1,8 @@
+{
+  "parent": "to_listen_seawaves:custom/hammer",
+  "textures": {
+    "0": "to_listen_seawaves:block/caduceus",
+    "4": "to_listen_seawaves:block/hammer",
+    "particle": "to_listen_seawaves:item/hammer"
+  }
+}

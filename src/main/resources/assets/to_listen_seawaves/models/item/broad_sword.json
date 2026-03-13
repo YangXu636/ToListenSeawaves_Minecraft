@@ -1,0 +1,8 @@
+{
+  "parent": "to_listen_seawaves:custom/broad_sword",
+  "textures": {
+    "0": "to_listen_seawaves:block/caduceus",
+    "5": "to_listen_seawaves:block/broad_sword",
+    "particle": "to_listen_seawaves:item/broad_sword"
+  }
+}

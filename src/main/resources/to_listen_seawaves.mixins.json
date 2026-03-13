@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "package": "top.xuyangjerry.mcmod.tolistenseawaves.neoforge.mixin",
+  "mixins": [
+  ],
+  "client": [
+    "BlockElement_DeserializerMixin"
+  ],
+  "server": [
+  ],
+  "compatibilityLevel": "JAVA_21",
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

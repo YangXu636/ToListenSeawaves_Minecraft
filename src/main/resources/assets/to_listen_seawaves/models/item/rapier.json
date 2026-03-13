@@ -1,0 +1,8 @@
+{
+  "parent": "to_listen_seawaves:custom/rapier",
+  "textures": {
+    "0": "to_listen_seawaves:block/caduceus",
+    "7": "to_listen_seawaves:block/rapier",
+    "particle": "to_listen_seawaves:item/rapier"
+  }
+}

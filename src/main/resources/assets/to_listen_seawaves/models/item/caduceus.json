@@ -1,0 +1,7 @@
+{
+  "parent": "to_listen_seawaves:custom/caduceus",
+  "textures": {
+    "1": "to_listen_seawaves:block/caduceus",
+    "particle": "to_listen_seawaves:item/caduceus"
+  }
+}
