@@ -6,6 +6,7 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.ToListenSeawaves;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.component.AreaAttackBonusDataComponent;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.component.MorphStoredItemDataComponent;
+import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.component.PlayerPrescriptDataComponent;
 
 import java.util.function.Supplier;
 
@@ -37,6 +38,15 @@ public class ToListenSeawavesDataComponents {
                     builder -> builder
                             .persistent(AreaAttackBonusDataComponent.CODEC)
                             .networkSynchronized(AreaAttackBonusDataComponent.STREAM_CODEC)
+                            .cacheEncoding()
+            );
+
+    public static final Supplier<DataComponentType<PlayerPrescriptDataComponent>> PLAYER_PRESCRIPT =
+            DATA_COMPONENTS.registerComponentType(
+                    "prescript_data",
+                    builder -> builder
+                            .persistent(PlayerPrescriptDataComponent.CODEC)
+                            .networkSynchronized(PlayerPrescriptDataComponent.STREAM_CODEC)
                             .cacheEncoding()
             );
 }

@@ -6,7 +6,10 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.advancements.CriterionProgress;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
@@ -15,7 +18,10 @@ import java.util.stream.Collectors;
 
 public class PrescriptProgress implements Comparable<PrescriptProgress> {
     private static final Codec<Map<String, CriterionProgress>> CRITERIA_CODEC;
+    private static final StreamCodec<RegistryFriendlyByteBuf, CriterionProgress> CRITERION_PROGRESS_STREAM_CODEC;
+    private static final StreamCodec<RegistryFriendlyByteBuf, Map<String, CriterionProgress>> CRITERIA_STREAM_CODEC;
     public static final Codec<PrescriptProgress> CODEC;
+    public static final StreamCodec<RegistryFriendlyByteBuf, PrescriptProgress> STREAM_CODEC;
     private final Map<String, CriterionProgress> criteria;
     private PrescriptRequirements requirements;
 
@@ -90,6 +96,10 @@ public class PrescriptProgress implements Comparable<PrescriptProgress> {
 
     public @Nullable CriterionProgress getCriterion(String criterionName) {
         return this.criteria.get(criterionName);
+    }
+
+    public Map<String, CriterionProgress> getCriteria() {
+        return this.criteria;
     }
 
     private boolean isCriterionDone(String criterionName) {
@@ -196,15 +206,27 @@ public class PrescriptProgress implements Comparable<PrescriptProgress> {
                             ));
                 }
         );
-        CODEC = RecordCodecBuilder.create((instance) -> {
-            return instance.group(
-                    CRITERIA_CODEC.optionalFieldOf("criteria", Map.of()).forGetter((progress) -> {
-                        return progress.criteria;
-                    }),
-                    Codec.BOOL.fieldOf("done").orElse(true).forGetter(PrescriptProgress::isDone)
-            ).apply(instance, (map, bool) -> {
-                return new PrescriptProgress(new HashMap<>(map));
-            });
-        });
+
+        CRITERION_PROGRESS_STREAM_CODEC = StreamCodec.of(
+                (buf, progress) -> progress.serializeToNetwork(buf),
+                CriterionProgress::fromNetwork
+        );
+
+        CRITERIA_STREAM_CODEC = ByteBufCodecs.map(
+                HashMap::new,
+                ByteBufCodecs.STRING_UTF8.cast(), // .cast() 把 StreamCodec<ByteBuf, String> → StreamCodec<RegistryFriendlyByteBuf, String>
+                CRITERION_PROGRESS_STREAM_CODEC
+        );
+
+        CODEC = RecordCodecBuilder.create((instance) -> instance.group(
+                CRITERIA_CODEC.optionalFieldOf("criteria", Map.of()).forGetter((progress) -> progress.criteria),
+                Codec.BOOL.fieldOf("done").orElse(true).forGetter(PrescriptProgress::isDone)
+        ).apply(instance, (map, bool) -> new PrescriptProgress(new HashMap<>(map))));
+
+        STREAM_CODEC = StreamCodec.composite(
+                CRITERIA_STREAM_CODEC,
+                PrescriptProgress::getCriteria,
+                PrescriptProgress::new
+        );
     }
 }
