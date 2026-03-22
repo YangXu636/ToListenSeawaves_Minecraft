@@ -2,10 +2,11 @@ package top.xuyangjerry.mcmod.tolistenseawaves.neoforge;
 
 import com.mojang.brigadier.context.CommandContextBuilder;
 import com.mojang.brigadier.context.ParsedArgument;
-import com.mojang.brigadier.context.ParsedCommandNode;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.registries.DataPackRegistryEvent;
+import net.neoforged.neoforge.registries.NewRegistryEvent;
 import org.slf4j.Logger;
 
 import com.mojang.logging.LogUtils;
@@ -22,19 +23,17 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.event.CommandEvent;
-import net.neoforged.neoforge.event.CommandEvent.*;
-import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.init.ToListenSeawavesDataComponents;
-import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.init.ToListenSeawavesItems;
-import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.init.ToListenSeawavesMobEffects;
-import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.init.ToListenSeawavesTabs;
+import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.init.*;
+import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.prescripts.Prescript;
+import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.prescripts.PrescriptCriteriaTriggers;
+import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.server.ServerPrescriptManager;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
-@Mod(ToListenSeawaves.MODID)
+@Mod(ToListenSeawaves.MOD_ID)
 public class ToListenSeawaves {
-    public static final String MODID = "to_listen_seawaves";
+    public static final String MOD_ID = "to_listen_seawaves";
     public static final Logger LOGGER = LogUtils.getLogger();
 
     // public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(MODID);
@@ -54,14 +53,20 @@ public class ToListenSeawaves {
 
     public ToListenSeawaves(IEventBus modEventBus, ModContainer modContainer) {
         modEventBus.addListener(this::commonSetup);
-        //BLOCKS.register(modEventBus);
+        modEventBus.addListener(ToListenSeawavesRegistries::registerCustomRegistries);
+
+        NeoForge.EVENT_BUS.register(this);
+        NeoForge.EVENT_BUS.register(ServerPrescriptManager.class);
+
         ToListenSeawavesItems.ITEMS.register(modEventBus);
         ToListenSeawavesTabs.TABS.register(modEventBus);
         ToListenSeawavesDataComponents.DATA_COMPONENTS.register(modEventBus);
         ToListenSeawavesMobEffects.MOB_EFFECTS.register(modEventBus);
+        ToListenSeawavesAttachmentType.ATTACHMENT_TYPES.register(modEventBus);
+        PrescriptCriteriaTriggers.PRESCRIPT_TRIGGERS.register(modEventBus);
 
-        NeoForge.EVENT_BUS.register(this);
         modEventBus.addListener(this::addCreative);
+        modEventBus.addListener(ToListenSeawavesRegistries::registerDatapackRegistries);
         // Register our mod's ModConfigSpec so that FML can create and load the config file for us
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
     }

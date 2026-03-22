@@ -10,7 +10,7 @@ import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.prescripts.PrescriptProgr
 
 import java.util.Optional;
 
-public record PlayerPrescriptDataComponent(long complete, Optional<Identifier> currentId, PrescriptProgress currentProgress) {
+public record PlayerPrescriptDataComponent(long complete, Optional<Identifier> currentId, PrescriptProgress currentProgress){
     public static final PlayerPrescriptDataComponent EMPTY = new PlayerPrescriptDataComponent(0, null, new PrescriptProgress());
 
     public static final Codec<PlayerPrescriptDataComponent> CODEC = RecordCodecBuilder.create(instance ->

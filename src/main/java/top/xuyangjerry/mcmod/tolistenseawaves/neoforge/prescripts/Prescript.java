@@ -3,7 +3,6 @@ package top.xuyangjerry.mcmod.tolistenseawaves.neoforge.prescripts;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.advancements.Criterion;
 import net.minecraft.advancements.criterion.CriterionValidator;
 import net.minecraft.core.HolderGetter;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -16,11 +15,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-public record Prescript(long timeLimitTicks, Map<String, Criterion<?>> criteria,
+public record Prescript(long timeLimitTicks, Map<String, PrescriptCriterion<?>> criteria,
                         PrescriptRequirements requirements, PrescriptRewards rewards,
                         PrescriptPublishConditions publishConditions)
 {
-    private static final Codec<Map<String, Criterion<?>>> CRITERIA_CODEC;
+    private static final Codec<Map<String, PrescriptCriterion<?>>> CRITERIA_CODEC;
     public static final Codec<Prescript> CODEC;
     public static final StreamCodec<RegistryFriendlyByteBuf, Prescript> STREAM_CODEC;
     public static final Codec<Optional<WithConditions<Prescript>>> CONDITIONAL_CODEC;
@@ -52,15 +51,15 @@ public record Prescript(long timeLimitTicks, Map<String, Criterion<?>> criteria,
     }
 
     static {
-        CRITERIA_CODEC = Codec.unboundedMap(Codec.STRING, Criterion.CODEC).validate((criterionMap) -> criterionMap.isEmpty() ? DataResult.error(() -> "Prescript criteria cannot be empty") : DataResult.success(criterionMap));
+        CRITERIA_CODEC = Codec.unboundedMap(Codec.STRING, PrescriptCriterion.CODEC).validate((criterionMap) -> criterionMap.isEmpty() ? DataResult.error(() -> "Prescript criteria cannot be empty") : DataResult.success(criterionMap));
 
         Codec<Prescript> codec1;
         codec1 = RecordCodecBuilder.create((instance) -> instance.group(
-                Codec.LONG.fieldOf("timeLimitTicks").forGetter(Prescript::timeLimitTicks),
+                Codec.LONG.fieldOf("time_limit_ticks").forGetter(Prescript::timeLimitTicks),
                 CRITERIA_CODEC.fieldOf("criteria").forGetter(Prescript::criteria),
                 PrescriptRequirements.CODEC.fieldOf("requirements").forGetter(Prescript::requirements),
                 PrescriptRewards.CODEC.fieldOf("rewards").forGetter(Prescript::rewards),
-                PrescriptPublishConditions.CODEC.fieldOf("publishConditions").forGetter(Prescript::publishConditions)
+                PrescriptPublishConditions.CODEC.optionalFieldOf("publish_conditions", PrescriptPublishConditions.EMPTY).forGetter(Prescript::publishConditions)
         ).apply(instance, Prescript::new));
         CODEC = codec1.validate(Prescript::validate);
 

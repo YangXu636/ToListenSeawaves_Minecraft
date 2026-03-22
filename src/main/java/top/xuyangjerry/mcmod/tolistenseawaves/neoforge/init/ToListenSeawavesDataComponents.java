@@ -12,7 +12,7 @@ import java.util.function.Supplier;
 
 public class ToListenSeawavesDataComponents {
     public static final DeferredRegister.DataComponents DATA_COMPONENTS =
-            DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, ToListenSeawaves.MODID);
+            DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, ToListenSeawaves.MOD_ID);
 
     public static final Supplier<DataComponentType<MorphStoredItemDataComponent>> STORED_CORE_ITEMS =
             DATA_COMPONENTS.registerComponentType(

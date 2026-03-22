@@ -1,0 +1,15 @@
+{
+  "time_limit_ticks": 6000,
+  "criteria": {
+    "kill_skeleton": {
+      "trigger": "to_listen_seawaves:impossible"
+    },
+    "equip_iron_chestplate": {
+      "trigger": "to_listen_seawaves:impossible"
+    }
+  },
+  "requirements": [["kill_skeleton"], ["equip_iron_chestplate"]],
+  "rewards": {
+    "experience": 500
+  }
+}

@@ -84,12 +84,12 @@ public record PrescriptPublishConditions(List<List<String>> conditions) {
         }
         Set<String> set = new ObjectOpenHashSet<>();
         for (List<String> condition : this.conditions) {
-            if (condition.isEmpty() && !criteria.isEmpty()) {
+            /*if (condition.isEmpty() && !criteria.isEmpty()) {
                 return DataResult.error(() -> "PrescriptPublishCondition entry cannot be empty");
-            }
+            }*/
             set.addAll(condition);
         }
-        if (!Sets.difference(criteria, set).isEmpty()) {
+        if (!Sets.difference(set, criteria).isEmpty()) {
             Set<String> set1 = Sets.difference(set, criteria);
             return DataResult.error(() -> {
                 return "Prescript completion conditions did not exactly match specified criteria. Unknown: " + set1;

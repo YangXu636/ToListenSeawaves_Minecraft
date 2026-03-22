@@ -6,16 +6,16 @@ import net.minecraft.advancements.CriterionTriggerInstance;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.server.PlayerPrescripts;
 
 public interface PrescriptCriterionTrigger <T extends CriterionTriggerInstance> {
-    void addPlayerListener(PlayerPrescripts var1, CriterionTrigger.Listener<T> var2);
+    void addPlayerListener(PlayerPrescripts var1, PrescriptCriterionTrigger.Listener<T> var2);
 
-    void removePlayerListener(PlayerPrescripts var1, CriterionTrigger.Listener<T> var2);
+    void removePlayerListener(PlayerPrescripts var1, PrescriptCriterionTrigger.Listener<T> var2);
 
     void removePlayerListeners(PlayerPrescripts var1);
 
     Codec<T> codec();
 
     default PrescriptCriterion<T> createCriterion(T triggerInstance) {
-        return new PrescriptCriterion(this, triggerInstance);
+        return new PrescriptCriterion<>(this, triggerInstance);
     }
 
     public static record Listener<T extends CriterionTriggerInstance>(T trigger, PrescriptHolder prescript,
