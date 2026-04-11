@@ -2,7 +2,7 @@
   "parent": "to_listen_seawaves:custom/hand_axe",
   "textures": {
     "0": "to_listen_seawaves:block/caduceus",
-    "3": "to_listen_seawaves:block/hand_axe",
+    "8": "to_listen_seawaves:block/hand_axe",
     "particle": "to_listen_seawaves:item/hand_axe"
   }
 }

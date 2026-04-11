@@ -10,14 +10,15 @@ import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.prescripts.PrescriptProgr
 
 import java.util.Optional;
 
-public record PlayerPrescriptDataComponent(long complete, Optional<Identifier> currentId, PrescriptProgress currentProgress){
-    public static final PlayerPrescriptDataComponent EMPTY = new PlayerPrescriptDataComponent(0, null, new PrescriptProgress());
+public record PlayerPrescriptDataComponent(long complete, Optional<Identifier> currentId, PrescriptProgress currentProgress, long remainingCdTicks){
+    public static final PlayerPrescriptDataComponent EMPTY = new PlayerPrescriptDataComponent(0, Optional.empty(), new PrescriptProgress(), 0);
 
     public static final Codec<PlayerPrescriptDataComponent> CODEC = RecordCodecBuilder.create(instance ->
             instance.group(
                     Codec.LONG.fieldOf("complete_count").forGetter(PlayerPrescriptDataComponent::complete),
                     Identifier.CODEC.optionalFieldOf("current_id").forGetter(PlayerPrescriptDataComponent::currentId),
-                    PrescriptProgress.CODEC.fieldOf("current_progress").forGetter(PlayerPrescriptDataComponent::currentProgress)
+                    PrescriptProgress.CODEC.fieldOf("current_progress").forGetter(PlayerPrescriptDataComponent::currentProgress),
+                    Codec.LONG.fieldOf("complete_count").forGetter(PlayerPrescriptDataComponent::remainingCdTicks)
             ).apply(instance, PlayerPrescriptDataComponent::new)
     );
 
@@ -25,6 +26,7 @@ public record PlayerPrescriptDataComponent(long complete, Optional<Identifier> c
             ByteBufCodecs.LONG, PlayerPrescriptDataComponent::complete,
             ByteBufCodecs.optional(Identifier.STREAM_CODEC), PlayerPrescriptDataComponent::currentId,
             PrescriptProgress.STREAM_CODEC, PlayerPrescriptDataComponent::currentProgress,
+            ByteBufCodecs.LONG, PlayerPrescriptDataComponent::remainingCdTicks,
             PlayerPrescriptDataComponent::new
     );
 }

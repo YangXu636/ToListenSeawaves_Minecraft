@@ -1,0 +1,7 @@
+{
+  "parent": "to_listen_seawaves:custom/prescript_device",
+  "textures": {
+    "0": "to_listen_seawaves:block/prescript_device",
+    "particle": "to_listen_seawaves:item/prescript_device"
+  }
+}

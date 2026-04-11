@@ -18,4 +18,5 @@ public class ToListenSeawavesItems {
     public static final DeferredItem<Item> BROAD_SWORD = ITEMS.registerItem("broad_sword", BroadSwordItem::new, Item.Properties::new);
     public static final DeferredItem<Item> RAPIER = ITEMS.registerItem("rapier", RapierItem::new, Item.Properties::new);
     public static final DeferredItem<Item> TRIDENT = ITEMS.registerItem("trident", TridentItem::new, Item.Properties::new);
+    public static final DeferredItem<Item> PRESCRIPT_DEVICE = ITEMS.registerItem("prescript_device", PrescriptDeviceItem::new, Item.Properties::new);
 }

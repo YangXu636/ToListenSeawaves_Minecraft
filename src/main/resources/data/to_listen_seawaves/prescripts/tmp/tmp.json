@@ -1,4 +1,7 @@
 {
+  "display": {
+    "show_time": true
+  },
   "time_limit_ticks": 6000,
   "criteria": {
     "kill_skeleton": {
@@ -9,6 +12,7 @@
     }
   },
   "requirements": [["kill_skeleton"], ["equip_iron_chestplate"]],
+  "publish_conditions": [[]],
   "rewards": {
     "experience": 500
   }

@@ -4,12 +4,11 @@ import com.google.common.collect.Sets;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import net.minecraft.advancements.CriterionProgress;
 import net.minecraft.network.FriendlyByteBuf;
+import org.jspecify.annotations.Nullable;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Predicate;
 
 public record PrescriptPublishConditions(List<List<String>> conditions) {
@@ -30,12 +29,12 @@ public record PrescriptPublishConditions(List<List<String>> conditions) {
         });
     }
 
-    public static PrescriptPublishConditions allOf(Collection<String> requirements) {
-        return new PrescriptPublishConditions(requirements.stream().map(List::of).toList());
+    public static PrescriptPublishConditions allOf(Collection<String> conditions) {
+        return new PrescriptPublishConditions(conditions.stream().map(List::of).toList());
     }
 
-    public static PrescriptPublishConditions anyOf(Collection<String> criteria) {
-        return new PrescriptPublishConditions(List.of(List.copyOf(criteria)));
+    public static PrescriptPublishConditions anyOf(Collection<String> conditions) {
+        return new PrescriptPublishConditions(List.of(List.copyOf(conditions)));
     }
 
     public int size() {
@@ -48,7 +47,7 @@ public record PrescriptPublishConditions(List<List<String>> conditions) {
         do {
             if (!var2.hasNext()) { return false; }
             s = var2.next();
-        } while(!predicate.test(s));
+        } while(!predicate.test(s) && !s.isEmpty());
         return true;
     }
 
@@ -76,6 +75,21 @@ public record PrescriptPublishConditions(List<List<String>> conditions) {
             }
         }
         return i;
+    }
+
+    public boolean canIPublish() {
+        if (this.conditions.isEmpty() || this.conditions.stream().allMatch(List::isEmpty)) { return true; }
+        Map<String, CriterionProgress> criteria = new HashMap<>();
+        Set<String> set = this.names();
+        for (String s : set) {
+            criteria.putIfAbsent(s, new CriterionProgress());
+        }
+        return this.test((conditionName) -> this.isConditionOk(criteria, conditionName));
+    }
+
+    private boolean isConditionOk(Map<String, CriterionProgress> criteria, String conditionName) {
+        CriterionProgress criterionprogress = criteria.get(conditionName);
+        return criterionprogress != null && criterionprogress.isDone();
     }
 
     public DataResult<PrescriptPublishConditions> validate(Set<String> criteria) {

@@ -31,12 +31,22 @@ import java.util.Map;
 
 public class ServerPrescriptManager  extends SimpleJsonResourceReloadListener<Prescript> {
     private static final Logger LOGGER = LogUtils.getLogger();
+    private static ServerPrescriptManager INSTANCE;
     public static Map<Identifier, PrescriptHolder> prescripts = Map.of();
     private final HolderLookup.Provider registries;
 
     public ServerPrescriptManager(HolderLookup.Provider registries) {
         super(registries, Prescript.CODEC, ToListenSeawavesRegistries.PRESCRIPT);
         this.registries = registries;
+    }
+
+    public static ServerPrescriptManager getInstance() {
+        return INSTANCE;
+    }
+
+    public static ServerPrescriptManager getInstance(AddServerReloadListenersEvent event) {
+        INSTANCE = new ServerPrescriptManager(event.getRegistryAccess());
+        return INSTANCE;
     }
 
     @Override
@@ -48,14 +58,14 @@ public class ServerPrescriptManager  extends SimpleJsonResourceReloadListener<Pr
                     rl.getPath().replace("prescripts/", "").replace(".json", ""));
             try {
                 Resource resource = raw.get(rl);
-                 BufferedReader reader = new BufferedReader(new InputStreamReader(resource.open(), StandardCharsets.UTF_8));
+                BufferedReader reader = new BufferedReader(new InputStreamReader(resource.open(), StandardCharsets.UTF_8));
                 Prescript prescript = Prescript.CODEC.decode(JsonOps.INSTANCE, com.google.gson.JsonParser.parseReader(reader))
                         .getOrThrow()
                         .getFirst();
                 loadedPrescripts.put(prescriptId, prescript);
-                LOGGER.info("加载预设任务：{}（时长：{} Tick）", prescriptId, prescript.timeLimitTicks());
-            } catch (IOException e) {
-                LOGGER.warn("加载任务失败：{}，错误：{}", rl, e.getMessage());
+                LOGGER.info("加载指令：{}（时长：{} Tick）", prescriptId, prescript.timeLimitTicks());
+            } catch (Exception e) {
+                LOGGER.warn("加载指令失败：{}，错误：{}", prescriptId, e.getMessage());
             }
         }
         return loadedPrescripts;
@@ -89,6 +99,6 @@ public class ServerPrescriptManager  extends SimpleJsonResourceReloadListener<Pr
 
     @SubscribeEvent
     public static void onAddReloadListeners(AddServerReloadListenersEvent event) {
-        event.addListener(Identifier.fromNamespaceAndPath(ToListenSeawaves.MOD_ID, "prescripts"), new ServerPrescriptManager(event.getRegistryAccess()));
+        event.addListener(Identifier.fromNamespaceAndPath(ToListenSeawaves.MOD_ID, "prescripts"), ServerPrescriptManager.getInstance(event));
     }
 }

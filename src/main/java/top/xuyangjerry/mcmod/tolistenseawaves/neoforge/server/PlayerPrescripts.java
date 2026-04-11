@@ -1,11 +1,11 @@
 package top.xuyangjerry.mcmod.tolistenseawaves.neoforge.server;
 
-import com.mojang.datafixers.DataFixer;
 import com.mojang.logging.LogUtils;
 import net.minecraft.advancements.*;
+import net.minecraft.advancements.criterion.MinMaxBounds;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.ServerAdvancementManager;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.players.PlayerList;
 import net.neoforged.neoforge.common.util.FakePlayer;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -13,23 +13,21 @@ import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.component.PlayerPrescript
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.init.ToListenSeawavesAttachmentType;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.prescripts.*;
 
-import java.nio.file.Path;
 import java.util.*;
 
 public class PlayerPrescripts {
     private static final Logger LOGGER = LogUtils.getLogger();
-    private PlayerList playerList;
     private ServerPlayer player;
     private long completeCount = 0;
     @Nullable private PrescriptHolder currentPrescript;
     private PrescriptProgress currentProgress = new PrescriptProgress();
+    public long remainingCdTicks = 0;
     private boolean progressChanged = false;
     private boolean isFirstPacket = true;
 
-    public PlayerPrescripts(DataFixer dataFixer, PlayerList playerList, ServerPrescriptManager manager, Path playerSavePath, ServerPlayer player) {
-        this.playerList = playerList;
+    public PlayerPrescripts(ServerPrescriptManager manager, ServerPlayer player) {
         this.player = player;
-        loadFromDataComponent(manager);
+        loadFromDataComponent();
         checkForAutomaticTriggers(manager);
         registerCurrentPrescriptListeners();
     }
@@ -39,6 +37,9 @@ public class PlayerPrescripts {
     }
 
     public PlayerPrescriptDataComponent getCurrentPrescript(ServerPlayer player) {
+        if (player == null || !player.hasData(ToListenSeawavesAttachmentType.PRESCRIPT)) {
+            return PlayerPrescriptDataComponent.EMPTY;
+        }
         return player.getData(ToListenSeawavesAttachmentType.PRESCRIPT);
     }
 
@@ -52,25 +53,70 @@ public class PlayerPrescripts {
         }
     }
 
-    private void loadFromDataComponent(ServerPrescriptManager manager) {
+    public int getRandomCd(MinMaxBounds.Ints bounds) {
+        int min = bounds.min().orElse(0);
+        int max = bounds.max().orElse(min);
+        return min == max ? min : player.getRandom().nextInt(min, max + 1);
+    }
+
+    public void updateTick() {
+        if (ServerPrescriptManager.getInstance() != null && this.currentPrescript != null) {
+            this.currentProgress.updateTick();
+        }
+        if (remainingCdTicks > 0) {
+            remainingCdTicks--;
+        }
+    }
+
+    public boolean IsExpired() {
+        if (this.currentPrescript == null) {
+            return true;
+        }
+        return this.currentPrescript.value().timeLimitTicks() > 0 && this.currentProgress.getTicks() > this.currentPrescript.value().timeLimitTicks();
+    }
+
+    public boolean isCdExpired() {
+        return this.remainingCdTicks <= 0;
+    }
+
+    public boolean IsCompleted() {
+        if (this.currentPrescript == null) {
+            return true;
+        }
+        return this.currentProgress.isDone();
+    }
+
+    public void loadFromDataComponent() {
         PlayerPrescriptDataComponent data = this.getCurrentPrescript(player);
-        if (data.currentId().isEmpty()) { return; }
-        this.currentPrescript = manager.get(data.currentId().get());
+        if (data == null) {
+            this.completeCount = 0;
+            this.currentPrescript = null;
+            this.currentProgress = new PrescriptProgress();
+            this.remainingCdTicks = 0;
+            return;
+        }
+        if (data.currentId().isEmpty()) {
+            this.remainingCdTicks = data.remainingCdTicks();
+            return;
+        }
+        this.currentPrescript = ServerPrescriptManager.get(data.currentId().get());
         if (this.currentPrescript != null) {
             this.completeCount = data.complete();
             this.currentProgress = data.currentProgress();
             this.currentProgress.update(this.currentPrescript.value().requirements());
+            this.remainingCdTicks = data.remainingCdTicks();
         } else {
             LOGGER.warn("Ignored invalid current prescript '{}' for player {}", data.currentId(), player.getName().getString());
             this.completeCount = 0;
             this.currentPrescript = null;
             this.currentProgress = new PrescriptProgress();
+            this.remainingCdTicks = 0;
         }
     }
 
     public void saveToDataComponent() {
         Optional<Identifier> op_id = currentPrescript != null ? Optional.ofNullable(currentPrescript.id()) : Optional.empty();
-        this.setCurrentPrescript(player, new PlayerPrescriptDataComponent(this.completeCount, op_id, currentProgress));
+        this.setCurrentPrescript(player, new PlayerPrescriptDataComponent(this.completeCount, op_id, currentProgress, this.remainingCdTicks));
     }
 
     // 停止监听当前Prescript的触发器
@@ -83,12 +129,13 @@ public class PlayerPrescripts {
 
     // 重新加载当前Prescript（用于资源重载）
     public void reload(ServerPrescriptManager manager) {
+        saveToDataComponent();
         stopListening();
         this.currentPrescript = null;
         this.currentProgress = new PrescriptProgress();
         this.progressChanged = false;
         this.isFirstPacket = true;
-        loadFromDataComponent(manager);
+        loadFromDataComponent();
         checkForAutomaticTriggers(manager);
         registerCurrentPrescriptListeners();
     }
@@ -106,7 +153,9 @@ public class PlayerPrescripts {
     // 授予Prescript进度（核心方法）
     public boolean award(PrescriptHolder prescript, String criterionKey) {
         if (player instanceof FakePlayer) return false;
-        // 强制单Prescript：先注销旧的，再设置新的
+
+        //this.remainingCdTicks =
+
         if (this.currentPrescript != null && !this.currentPrescript.equals(prescript)) {
             stopListening();
             this.currentProgress = new PrescriptProgress();
@@ -121,11 +170,10 @@ public class PlayerPrescripts {
             flag = true;
             if (!wasDone && currentProgress.isDone()) {
                 prescript.value().rewards().grant(this.player);
-                // 移除公告/事件逻辑（按需自行实现）
-                // TODO 完成指令后公示
+                PrescriptPublisher.sendPrescriptCompleteMessage(this.player, prescript);
+                this.completeCount++;
             }
         }
-
         if (!wasDone && currentProgress.isDone()) {
             this.progressChanged = true;
         }
@@ -152,8 +200,18 @@ public class PlayerPrescripts {
         return flag;
     }
 
+    public void revoke() {
+        if (this.currentPrescript == null) return ;
+
+        PrescriptPublisher.sendPrescriptFailMessage(this.player, this.currentPrescript);
+        this.currentProgress = new PrescriptProgress();
+        stopListening();
+        this.progressChanged = true;
+        saveToDataComponent();
+    }
+
     // 注册当前Prescript的触发器监听
-    private void registerCurrentPrescriptListeners() {
+    void registerCurrentPrescriptListeners() {
         if (currentPrescript == null || currentProgress.isDone()) return;
 
         Prescript prescript = currentPrescript.value();
@@ -242,5 +300,16 @@ public class PlayerPrescripts {
     @Nullable
     public PrescriptHolder getCurrentPrescript() {
         return currentPrescript;
+    }
+
+    public int getCompleteCount() {
+        return (int)completeCount;
+    }
+
+    public int getTotalCount() {
+        if (this.currentPrescript == null) {
+            return 0;
+        }
+        return this.currentProgress.getTotalCount();
     }
 }

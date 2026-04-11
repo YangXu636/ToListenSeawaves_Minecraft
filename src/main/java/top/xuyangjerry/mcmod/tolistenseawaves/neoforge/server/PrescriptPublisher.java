@@ -1,4 +1,193 @@
 package top.xuyangjerry.mcmod.tolistenseawaves.neoforge.server;
 
+import com.mojang.logging.LogUtils;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.tick.LevelTickEvent;
+import org.slf4j.Logger;
+import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.network.PrescriptSyncPacket;
+import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.prescripts.PrescriptHolder;
+
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
+@EventBusSubscriber
 public class PrescriptPublisher {
+    private static final Logger LOGGER = LogUtils.getLogger();
+    private static PrescriptPublisher INSTANCE;
+    private final Map<UUID, PlayerPrescripts> playerPrescripts = new ConcurrentHashMap<>();
+
+    private PrescriptPublisher() {}
+
+    public static PrescriptPublisher getInstance() {
+        if (INSTANCE == null) {
+            INSTANCE = new PrescriptPublisher();
+        }
+        return INSTANCE;
+    }
+
+    public static PlayerPrescripts getPrescript(ServerPlayer sPlayer) {
+        PrescriptPublisher pp = getInstance();
+        UUID uuid = sPlayer.getUUID();
+        if (!pp.playerPrescripts.containsKey(uuid)) {
+            pp.playerPrescripts.putIfAbsent(uuid, new PlayerPrescripts(ServerPrescriptManager.getInstance(), sPlayer));
+        }
+        return pp.playerPrescripts.get(uuid);
+    }
+
+    private void updatePlayerPrescriptTick(ServerPlayer player) {
+        UUID playerId = player.getUUID();
+        PlayerPrescripts prescripts = getPrescript(player);
+
+        if (prescripts.getCurrentPrescript() == null && prescripts.isCdExpired()) {
+            PrescriptHolder newPrescript = pickValidPrescript(player);
+            if (newPrescript != null) {
+                assignPrescriptToPlayer(player, newPrescript);
+            }
+        }
+
+        prescripts.updateTick();
+        syncPrescriptDataToClient(player, prescripts);
+
+        if (prescripts.IsExpired() && !prescripts.IsCompleted()) {
+            prescripts.revoke();
+            sendPrescriptExpireMessage(player, prescripts.getCurrentPrescript());
+
+            PrescriptSyncPacket emptyPacket = PrescriptSyncPacket.EMPTY;
+            PrescriptSyncPacket.sendToPlayer(player, emptyPacket);
+
+            playerPrescripts.remove(playerId);
+        }
+    }
+
+    private PrescriptHolder pickValidPrescript(ServerPlayer player) {
+        Collection<PrescriptHolder> allPrescripts = ServerPrescriptManager.getAllPrescripts();
+        if (allPrescripts.isEmpty()) {
+            LOGGER.warn("No prescripts available to assign to player {}", player.getName().getString());
+            return null;
+        }
+
+        // 筛选符合发布条件的Prescript
+        List<PrescriptHolder> validPrescripts = new ArrayList<>();
+        for (PrescriptHolder holder : allPrescripts) {
+            if (holder.value().publishConditions().canIPublish()) {
+                validPrescripts.add(holder);
+            }
+        }
+
+        if (validPrescripts.isEmpty()) {
+            LOGGER.warn("No valid prescripts for player {} (all failed publish conditions)", player.getName().getString());
+            return null;
+        }
+
+        // 随机抽取一个（如果需要加权随机，可使用XyTools）
+        // 方式1：简单随机
+        return validPrescripts.get(new Random().nextInt(validPrescripts.size()));
+
+        // 方式2：加权随机（如果需要按权重抽取，示例）
+        // List<Float> probabilities = validPrescripts.stream().map(h -> 1.0f).toList(); // 等权重，可自定义
+        // return XyTools.GetMemberWithProbability(validPrescripts, probabilities);
+    }
+
+    private void syncPrescriptDataToClient(ServerPlayer player, PlayerPrescripts prescripts) {
+        PrescriptHolder holder = prescripts.getCurrentPrescript();
+        if (holder == null) return;
+
+        long remainingTicks = holder.value().timeLimitTicks() - prescripts.getOrStartProgress(holder).getTicks();
+        remainingTicks = Math.max(0, remainingTicks);
+
+        String desc = holder.value().display().description().getString();
+
+        PrescriptSyncPacket packet = new PrescriptSyncPacket(
+                Optional.of(holder.id().toString()),
+                Optional.of(desc),
+                holder.value().timeLimitTicks(),
+                remainingTicks,
+                prescripts.getTotalCount(),
+                prescripts.getCompleteCount()
+        );
+        PrescriptSyncPacket.sendToPlayer(player, packet);
+    }
+
+    public boolean assignPrescriptToPlayer(ServerPlayer player, PrescriptHolder prescriptHolder) {
+        if (player == null || prescriptHolder == null) return false;
+        PlayerPrescripts playerPrescripts = getPrescript(player);
+
+        playerPrescripts.stopListening();
+
+        playerPrescripts.getOrStartProgress(prescriptHolder);
+        sendPrescriptPublishMessage(player, prescriptHolder);
+
+        playerPrescripts.registerCurrentPrescriptListeners();
+        playerPrescripts.saveToDataComponent();
+
+        syncPrescriptDataToClient(player, playerPrescripts);
+
+        return true;
+    }
+
+    private void sendPrescriptPublishMessage(ServerPlayer player, PrescriptHolder holder) {
+        // 1. 聊天消息（带MOD前缀）
+        /*player.sendSystemMessage(Component.translatable(
+                "prescript.publish.chat",
+                Component.literal(holder.id().getPath()),
+                Component.literal(String.valueOf(holder.value().timeLimitTicks()))
+        ));
+
+        // 2. 标题提示（短时间显示）
+        *//*player.send(
+                Component.translatable("prescript.publish.title"),
+                Component.translatable("prescript.publish.subtitle", holder.id().getPath()),
+                10, 40, 10 // 淡入10ticks，显示40ticks，淡出10ticks
+        );*//*
+
+        // 3. 动作栏提示
+        player.displayClientMessage(Component.translatable(
+                "prescript.publish.actionbar",
+                holder.value().display().description()
+        ), true);*/
+    }
+
+    public static void sendPrescriptCompleteMessage(ServerPlayer player, PrescriptHolder prescript) {
+    }
+
+    public static void sendPrescriptFailMessage(ServerPlayer player, PrescriptHolder currentPrescript) {
+    }
+
+    private void sendPrescriptExpireMessage(ServerPlayer player, PrescriptHolder currentPrescript) {
+    }
+
+    @SubscribeEvent
+    public static void onWorldTick(LevelTickEvent.Post event) {
+        if (event.getLevel().isClientSide()) {
+            return;
+        }
+        Objects.requireNonNull(event.getLevel().getServer()).getPlayerList().getPlayers().forEach(player -> PrescriptPublisher.getInstance().updatePlayerPrescriptTick(player));
+    }
+
+    @SubscribeEvent
+    public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer player)) {
+            return;
+        }
+        PlayerPrescripts prescripts = getPrescript(player);
+        if (prescripts != null) {
+            prescripts.loadFromDataComponent(); // 保存数据到组件
+            LOGGER.info("Loaded prescript data for player {} on login", player.getName().getString());
+        }
+    }
+
+    @SubscribeEvent
+    public static void onPlayerLogout(PlayerEvent.PlayerLoggedOutEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer player)) {
+            return;
+        }
+        PlayerPrescripts prescripts = getPrescript(player);
+        if (prescripts != null) {
+            prescripts.saveToDataComponent(); // 保存数据到组件
+            LOGGER.info("Saved prescript data for player {} on logout", player.getName().getString());
+        }
+    }
 }

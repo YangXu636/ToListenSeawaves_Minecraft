@@ -24,15 +24,28 @@ public class PrescriptProgress implements Comparable<PrescriptProgress> {
     public static final StreamCodec<RegistryFriendlyByteBuf, PrescriptProgress> STREAM_CODEC;
     private final Map<String, CriterionProgress> criteria;
     private PrescriptRequirements requirements;
+    private int ticks;
+
+    private PrescriptProgress(Map<String, CriterionProgress> criteria, int ticks) {
+        this.requirements = PrescriptRequirements.EMPTY;
+        this.criteria = criteria;
+        this.ticks = ticks;
+    }
 
     private PrescriptProgress(Map<String, CriterionProgress> criteria) {
         this.requirements = PrescriptRequirements.EMPTY;
         this.criteria = criteria;
+        this.ticks = 0;
     }
 
     public PrescriptProgress() {
         this.requirements = PrescriptRequirements.EMPTY;
         this.criteria = Maps.newHashMap();
+        this.ticks = 0;
+    }
+
+    public void updateTick() {
+        this.ticks++;
     }
 
     public void update(PrescriptRequirements requirements) {
@@ -117,18 +130,20 @@ public class PrescriptProgress implements Comparable<PrescriptProgress> {
         }
     }
 
+    public int getTotalCount() {
+        return this.requirements.size();
+    }
+
     public @Nullable Component getProgressText() {
         if (this.criteria.isEmpty()) {
             return null;
-        } else {
-            int i = this.requirements.size();
-            if (i <= 1) {
-                return null;
-            } else {
-                int j = this.countCompletedRequirements();
-                return Component.translatable("prescript.progress", new Object[]{j, i});
-            }
         }
+        int i = this.requirements.size();
+        if (i <= 1) {
+            return null;
+        }
+        int j = this.countCompletedRequirements();
+        return Component.translatable("prescript.progress", new Object[]{j, i});
     }
 
     private int countCompletedRequirements() {
@@ -157,6 +172,14 @@ public class PrescriptProgress implements Comparable<PrescriptProgress> {
 
     public @Nullable Instant getFirstProgressDate() {
         return this.criteria.values().stream().map(CriterionProgress::getObtained).filter(Objects::nonNull).min(Comparator.naturalOrder()).orElse(null);
+    }
+
+    public void setTicks(int ticks) {
+        this.ticks = ticks;
+    }
+
+    public int getTicks() {
+        return ticks;
     }
 
     public int compareTo(PrescriptProgress other) {
@@ -220,12 +243,14 @@ public class PrescriptProgress implements Comparable<PrescriptProgress> {
 
         CODEC = RecordCodecBuilder.create((instance) -> instance.group(
                 CRITERIA_CODEC.optionalFieldOf("criteria", Map.of()).forGetter((progress) -> progress.criteria),
-                Codec.BOOL.fieldOf("done").orElse(true).forGetter(PrescriptProgress::isDone)
-        ).apply(instance, (map, bool) -> new PrescriptProgress(new HashMap<>(map))));
+                Codec.INT.fieldOf("ticks").forGetter(PrescriptProgress::getTicks)
+        ).apply(instance, (map, ticks) -> new PrescriptProgress(new HashMap<>(map), ticks)));
 
         STREAM_CODEC = StreamCodec.composite(
                 CRITERIA_STREAM_CODEC,
                 PrescriptProgress::getCriteria,
+                ByteBufCodecs.INT,
+                PrescriptProgress::getTicks,
                 PrescriptProgress::new
         );
     }

@@ -73,7 +73,7 @@ public record PrescriptRequirements(List<List<String>> requirements) {
                 ++i;
             }
         }
-        return Math.max(i, 1);
+        return i;
     }
 
     public DataResult<PrescriptRequirements> validate(Set<String> criteria) {

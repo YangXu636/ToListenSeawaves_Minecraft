@@ -23,5 +23,6 @@ public class ToListenSeawavesTabs {
                 tabData.accept(ToListenSeawavesItems.BROAD_SWORD.get());
                 tabData.accept(ToListenSeawavesItems.RAPIER.get());
                 tabData.accept(ToListenSeawavesItems.TRIDENT.get());
+                tabData.accept(ToListenSeawavesItems.PRESCRIPT_DEVICE.get());
             }).withSearchBar().build());
 }
