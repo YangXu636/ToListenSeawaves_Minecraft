@@ -2,21 +2,25 @@ package top.xuyangjerry.mcmod.tolistenseawaves.neoforge.prescripts;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.mojang.logging.LogUtils;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.advancements.CriterionProgress;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
+import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
 
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class PrescriptProgress implements Comparable<PrescriptProgress> {
+    public static final Logger LOGGER = LogUtils.getLogger();
+
     private static final Codec<Map<String, CriterionProgress>> CRITERIA_CODEC;
     private static final StreamCodec<RegistryFriendlyByteBuf, CriterionProgress> CRITERION_PROGRESS_STREAM_CODEC;
     private static final StreamCodec<RegistryFriendlyByteBuf, Map<String, CriterionProgress>> CRITERIA_STREAM_CODEC;
@@ -28,19 +32,19 @@ public class PrescriptProgress implements Comparable<PrescriptProgress> {
 
     private PrescriptProgress(Map<String, CriterionProgress> criteria, int ticks) {
         this.requirements = PrescriptRequirements.EMPTY;
-        this.criteria = criteria;
+        this.criteria = new LinkedHashMap<>(criteria);
         this.ticks = ticks;
     }
 
     private PrescriptProgress(Map<String, CriterionProgress> criteria) {
         this.requirements = PrescriptRequirements.EMPTY;
-        this.criteria = criteria;
+        this.criteria = new LinkedHashMap<>(criteria);
         this.ticks = 0;
     }
 
     public PrescriptProgress() {
         this.requirements = PrescriptRequirements.EMPTY;
-        this.criteria = Maps.newHashMap();
+        this.criteria = new LinkedHashMap<>();
         this.ticks = 0;
     }
 
@@ -71,14 +75,13 @@ public class PrescriptProgress implements Comparable<PrescriptProgress> {
         return true;
     }
 
-    public boolean grantProgress(String criterionName) {
+    public boolean grantProgress(String criterionName, boolean isOrdered) {
         CriterionProgress criterionprogress = this.criteria.get(criterionName);
-        if (criterionprogress != null && !criterionprogress.isDone()) {
+        if (criterionprogress != null && !criterionprogress.isDone() && (!isOrdered || this.criteria.entrySet().stream().takeWhile(entry -> !entry.getKey().equals(criterionName)).allMatch(entry -> entry.getValue().isDone()))) {
             criterionprogress.grant();
             return true;
-        } else {
-            return false;
         }
+        return false;
     }
 
     public boolean revokeProgress(String criterionName) {
@@ -93,7 +96,7 @@ public class PrescriptProgress implements Comparable<PrescriptProgress> {
 
     public String toString() {
         String str = String.valueOf(this.criteria);
-        return "PrescriptProgress{criteria=" + str + ", requirements=" + this.requirements + "}";
+        return "PrescriptProgress{criteria=" + str + ", requirements=" + this.requirements + ", ticks=" + this.ticks + "}";
     }
 
     public void serializeToNetwork(FriendlyByteBuf buffer) {
@@ -120,7 +123,7 @@ public class PrescriptProgress implements Comparable<PrescriptProgress> {
         return criterionprogress != null && criterionprogress.isDone();
     }
 
-    public float getPercent() {
+    /*public float getPercent() {
         if (this.criteria.isEmpty()) {
             return 0.0F;
         } else {
@@ -128,13 +131,13 @@ public class PrescriptProgress implements Comparable<PrescriptProgress> {
             float f1 = (float)this.countCompletedRequirements();
             return f1 / f;
         }
-    }
+    }*/
 
     public int getTotalCount() {
         return this.requirements.size();
     }
 
-    public @Nullable Component getProgressText() {
+    /*public @Nullable Component getProgressText() {
         if (this.criteria.isEmpty()) {
             return null;
         }
@@ -144,9 +147,9 @@ public class PrescriptProgress implements Comparable<PrescriptProgress> {
         }
         int j = this.countCompletedRequirements();
         return Component.translatable("prescript.progress", new Object[]{j, i});
-    }
+    }*/
 
-    private int countCompletedRequirements() {
+    public int countCompletedRequirements() {
         return this.requirements.count(this::isCriterionDone);
     }
 

@@ -55,15 +55,14 @@ public record PrescriptRequirements(List<List<String>> requirements) {
     public boolean test(Predicate<String> predicate) {
         if (this.requirements.isEmpty()) {
             return false;
-        } else {
-            Iterator<List<String>> var2 = this.requirements.iterator();
-            List<String> list;
-            do {
-                if (!var2.hasNext()) { return true; }
-                list = var2.next();
-            } while(anyMatch(list, predicate));
-            return false;
         }
+        Iterator<List<String>> var2 = this.requirements.iterator();
+        List<String> list;
+        do {
+            if (!var2.hasNext()) { return true; }
+            list = var2.next();
+        } while(anyMatch(list, predicate));
+        return false;
     }
 
     public int count(Predicate<String> filter) {

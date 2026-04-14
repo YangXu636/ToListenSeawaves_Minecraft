@@ -1,13 +1,11 @@
 package top.xuyangjerry.mcmod.tolistenseawaves.neoforge.prescripts;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import net.minecraft.advancements.CriterionTriggerInstance;
 import net.minecraft.advancements.criterion.ContextAwarePredicate;
 import net.minecraft.advancements.criterion.CriterionValidator;
 import net.minecraft.advancements.criterion.EntityPredicate;
-import net.minecraft.advancements.criterion.SimpleCriterionTrigger;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.storage.loot.LootContext;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.server.PlayerPrescripts;
@@ -51,36 +49,8 @@ public abstract class SimplePrescriptCriterionTrigger<T extends SimplePrescriptC
                     T t = listener.trigger();
                     return testTrigger.test(t) && (t.player().isEmpty() || t.player().get().matches(lootcontext));
                 })
+                .toList()
                 .forEach(listener -> listener.run(playerPrescripts));
-
-        /*Iterator<Listener<T>> var7 = listenerSet.iterator();
-        while(true) {
-            PrescriptCriterionTrigger.Listener<T> listener;
-            Optional<ContextAwarePredicate> optional;
-            do {
-                T t;
-                do {
-                    if (!var7.hasNext()) {
-                        if (list != null) {
-                            var7 = list.iterator();
-                            while(var7.hasNext()) {
-                                listener = var7.next();
-                                listener.run(playerPrescripts);
-                            }
-                        }
-                        return;
-                    }
-                    listener = var7.next();
-                    t = listener.trigger();
-                } while(!testTrigger.test(t));
-                optional = t.player();
-            } while(optional.isPresent() && !(optional.get()).matches(lootcontext));
-            if (list == null) {
-                list = Lists.newArrayList();
-            }
-
-            list.add(listener);
-        }*/
     }
 
     public interface SimplePrescriptInstance extends CriterionTriggerInstance {

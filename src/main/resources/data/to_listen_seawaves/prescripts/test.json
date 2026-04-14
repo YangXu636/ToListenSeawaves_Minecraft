@@ -1,23 +1,34 @@
 {
   "display": {
     "description": {
-      "text": "挖掘10个石头"
+      "text": "表白1"
     },
     "show_time": true
   },
-  "time_limit_ticks": 6000,
-  "cd": 0,
+  "time_limit_ticks": 3000,
+  "ordered_requirements": true,
   "criteria": {
     "kill_skeleton": {
-      "trigger": "to_listen_seawaves:impossible"
+      "trigger": "to_listen_seawaves:send_message",
+      "conditions": {
+        "messages": ["111"]
+      }
     },
     "equip_iron_chestplate": {
-      "trigger": "to_listen_seawaves:impossible"
+      "trigger": "to_listen_seawaves:any_block_use",
+      "conditions": {
+        "location": [
+          {
+            "condition": "block_state_property",
+            "block": "minecraft:anvil"
+          }
+        ]
+      }
     }
   },
-  "requirements": [["kill_skeleton"], ["equip_iron_chestplate"]],
+  "requirements": [["equip_iron_chestplate"], ["kill_skeleton"]],
   "publish_conditions": [[]],
   "rewards": {
-    "experience": 500
+    "experience": 5
   }
 }

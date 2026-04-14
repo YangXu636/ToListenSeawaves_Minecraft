@@ -8,6 +8,10 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class XyTools {
 
+    public static <T> T GetMemberRandom(List<T> elements){
+        return GetMemberWithProbability(elements, new ArrayList<>(Collections.nCopies(elements.size(), 1f)));
+    }
+
     public static <T> T GetMemberWithProbability(List<T> elements, List<Float> probability){
         WeightedRandomPicker<T> wrp = new WeightedRandomPicker<>();
         return wrp.pick(elements, probability.stream().map(Float::doubleValue).toList());

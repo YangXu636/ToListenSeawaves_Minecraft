@@ -2,18 +2,14 @@ package top.xuyangjerry.mcmod.tolistenseawaves.neoforge.client.screens;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
-import org.joml.Matrix3x2fStack;
 import org.slf4j.Logger;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.ToListenSeawaves;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.client.ClientPrescriptData;
@@ -59,5 +55,4 @@ public class PrescriptHudOverlay {
             player.displayClientMessage(Component.literal(prescriptData.getCurrentTaskDesc()), true);
         }
     }
-
 }

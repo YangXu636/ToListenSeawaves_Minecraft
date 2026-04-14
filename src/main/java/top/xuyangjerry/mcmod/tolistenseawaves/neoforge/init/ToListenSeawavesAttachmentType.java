@@ -12,6 +12,6 @@ public class ToListenSeawavesAttachmentType {
     public static final DeferredRegister<AttachmentType<?>> ATTACHMENT_TYPES = DeferredRegister.create(NeoForgeRegistries.ATTACHMENT_TYPES, ToListenSeawaves.MOD_ID);
 
     public static final Supplier<AttachmentType<PlayerPrescriptDataComponent>> PRESCRIPT = ATTACHMENT_TYPES.register(
-            "player_prescript_data", () -> AttachmentType.builder(() -> PlayerPrescriptDataComponent.EMPTY).sync(PlayerPrescriptDataComponent.STREAM_CODEC).build()
+            "player_prescript_data", () -> AttachmentType.builder(() -> PlayerPrescriptDataComponent.EMPTY).serialize(PlayerPrescriptDataComponent.CODEC.optionalFieldOf("player_prescript_data", PlayerPrescriptDataComponent.EMPTY)).copyOnDeath().sync(PlayerPrescriptDataComponent.STREAM_CODEC).build()
     );
 }

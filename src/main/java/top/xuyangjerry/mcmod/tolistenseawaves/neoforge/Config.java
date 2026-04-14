@@ -20,7 +20,7 @@ public class Config {
             .defineInRange("magicNumber", 42, 0, Integer.MAX_VALUE);
 
     public static final ModConfigSpec.ConfigValue<String> MAGIC_NUMBER_INTRODUCTION = BUILDER
-            .comment("What you want the introduction message to be for the magic number")
+            .comment("What you want the introduction messages to be for the magic number")
             .define("magicNumberIntroduction", "The magic number is... ");
 
     // a list of strings that are treated as resource locations for items

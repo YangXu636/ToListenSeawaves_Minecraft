@@ -9,8 +9,6 @@ import net.minecraft.core.HolderGetter;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.util.ProblemReporter;
-import net.minecraft.util.valueproviders.IntProvider;
-import net.minecraft.world.level.dimension.DimensionType;
 import net.neoforged.neoforge.common.conditions.ConditionalOps;
 import net.neoforged.neoforge.common.conditions.WithConditions;
 
@@ -19,7 +17,7 @@ import java.util.Optional;
 import java.util.Set;
 
 public record Prescript(PrescriptDisplay display, long timeLimitTicks, MinMaxBounds.Ints cd,
-                        Map<String, PrescriptCriterion<?>> criteria,
+                        Map<String, PrescriptCriterion<?>> criteria, boolean orderedRequirements,
                         PrescriptRequirements requirements, PrescriptRewards rewards,
                         PrescriptPublishConditions publishConditions)
 {
@@ -41,12 +39,13 @@ public record Prescript(PrescriptDisplay display, long timeLimitTicks, MinMaxBou
         PrescriptDisplay.STREAM_CODEC.encode(buffer, this.display);
         buffer.writeLong(this.timeLimitTicks);
         MinMaxBounds.Ints.STREAM_CODEC.encode(buffer, this.cd);
+        buffer.writeBoolean(this.orderedRequirements);
         this.requirements.write(buffer);
         this.publishConditions.write(buffer);
     }
 
     private static Prescript read(RegistryFriendlyByteBuf buffer) { //按照write的顺序读取数据
-        return new Prescript(PrescriptDisplay.STREAM_CODEC.decode(buffer), buffer.readLong(), MinMaxBounds.Ints.STREAM_CODEC.decode(buffer), Map.of(), new PrescriptRequirements(buffer), PrescriptRewards.EMPTY, new PrescriptPublishConditions(buffer));
+        return new Prescript(PrescriptDisplay.STREAM_CODEC.decode(buffer), buffer.readLong(), MinMaxBounds.Ints.STREAM_CODEC.decode(buffer), Map.of(), buffer.readBoolean(), new PrescriptRequirements(buffer), PrescriptRewards.EMPTY, new PrescriptPublishConditions(buffer));
     }
 
     public void validate(ProblemReporter reporter, HolderGetter.Provider lootData) {    //校验 子条件本身的触发逻辑 是否合法
@@ -65,6 +64,7 @@ public record Prescript(PrescriptDisplay display, long timeLimitTicks, MinMaxBou
                 Codec.LONG.fieldOf("time_limit_ticks").forGetter(Prescript::timeLimitTicks),
                 MinMaxBounds.Ints.CODEC.optionalFieldOf("cd", MinMaxBounds.Ints.exactly(0)).forGetter(Prescript::cd),
                 CRITERIA_CODEC.fieldOf("criteria").forGetter(Prescript::criteria),
+                Codec.BOOL.optionalFieldOf("ordered_requirements", false).forGetter(Prescript::orderedRequirements),
                 PrescriptRequirements.CODEC.fieldOf("requirements").forGetter(Prescript::requirements),
                 PrescriptRewards.CODEC.fieldOf("rewards").forGetter(Prescript::rewards),
                 PrescriptPublishConditions.CODEC.optionalFieldOf("publish_conditions", PrescriptPublishConditions.EMPTY).forGetter(Prescript::publishConditions)

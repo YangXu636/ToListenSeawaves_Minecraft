@@ -2,18 +2,24 @@ package top.xuyangjerry.mcmod.tolistenseawaves.neoforge.server;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.players.PlayerList;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.level.LevelEvent;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
+import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.ToListenSeawaves;
+import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.init.ToListenSeawavesDataComponents;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.network.PrescriptSyncPacket;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.prescripts.PrescriptHolder;
+import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.tool.XyTools;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-@EventBusSubscriber
+@EventBusSubscriber(modid = ToListenSeawaves.MOD_ID)
 public class PrescriptPublisher {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static PrescriptPublisher INSTANCE;
@@ -38,27 +44,32 @@ public class PrescriptPublisher {
     }
 
     private void updatePlayerPrescriptTick(ServerPlayer player) {
-        UUID playerId = player.getUUID();
         PlayerPrescripts prescripts = getPrescript(player);
+        prescripts.updateTick();
 
-        if (prescripts.getCurrentPrescript() == null && prescripts.isCdExpired()) {
-            PrescriptHolder newPrescript = pickValidPrescript(player);
-            if (newPrescript != null) {
-                assignPrescriptToPlayer(player, newPrescript);
-            }
+        if (!prescripts.isCdExpired()) {
+            return;
         }
 
-        prescripts.updateTick();
+        if (prescripts.getCurrentPrescript() == null) {
+            PrescriptHolder newPrescript = pickValidPrescript(player);
+            if (newPrescript != null && assignPrescriptToPlayer(player, newPrescript)) {
+                LOGGER.info("发布指令({}) 致[{}], {}", newPrescript.id().toString(), player.getName().getString(), newPrescript.value().display().description().getString());
+            } else {
+                LOGGER.warn("未知错误: 无法发布指令");
+            }
+        }
         syncPrescriptDataToClient(player, prescripts);
 
-        if (prescripts.IsExpired() && !prescripts.IsCompleted()) {
+        if (!prescripts.IsExpired() && prescripts.IsCompleted()) {
+            prescripts.clearCurrentPrescript();
+            sendPrescriptCompleteMessage(player, prescripts.getCurrentPrescript());
+            PrescriptSyncPacket.sendToPlayer(player, PrescriptSyncPacket.EMPTY);
+        } else if (prescripts.IsExpired()) {
             prescripts.revoke();
+            prescripts.clearCurrentPrescript();
             sendPrescriptExpireMessage(player, prescripts.getCurrentPrescript());
-
-            PrescriptSyncPacket emptyPacket = PrescriptSyncPacket.EMPTY;
-            PrescriptSyncPacket.sendToPlayer(player, emptyPacket);
-
-            playerPrescripts.remove(playerId);
+            PrescriptSyncPacket.sendToPlayer(player, PrescriptSyncPacket.EMPTY);
         }
     }
 
@@ -81,14 +92,14 @@ public class PrescriptPublisher {
             LOGGER.warn("No valid prescripts for player {} (all failed publish conditions)", player.getName().getString());
             return null;
         }
-
+        LOGGER.info("可发布指令：{}", StringUtils.join(validPrescripts.stream().map(x -> x.id().toString()).toArray(), ", "));
         // 随机抽取一个（如果需要加权随机，可使用XyTools）
         // 方式1：简单随机
-        return validPrescripts.get(new Random().nextInt(validPrescripts.size()));
+        //return validPrescripts.get(new Random().nextInt(validPrescripts.size()));
 
         // 方式2：加权随机（如果需要按权重抽取，示例）
         // List<Float> probabilities = validPrescripts.stream().map(h -> 1.0f).toList(); // 等权重，可自定义
-        // return XyTools.GetMemberWithProbability(validPrescripts, probabilities);
+        return XyTools.GetMemberRandom(validPrescripts);
     }
 
     private void syncPrescriptDataToClient(ServerPlayer player, PlayerPrescripts prescripts) {
@@ -168,13 +179,25 @@ public class PrescriptPublisher {
     }
 
     @SubscribeEvent
+    public static void onWorldUnload(LevelEvent.Unload event) {
+        event.getLevel().players().forEach(player -> {
+            if (!(player instanceof ServerPlayer serverPlayer)) { return; }
+            PlayerPrescripts prescripts = getPrescript(serverPlayer);
+            if (prescripts != null) {
+                prescripts.saveToDataComponent();
+                LOGGER.info("Saved prescript data for player {} on world unload", player.getName().getString());
+            }
+        });
+    }
+
+    @SubscribeEvent
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) {
             return;
         }
         PlayerPrescripts prescripts = getPrescript(player);
         if (prescripts != null) {
-            prescripts.loadFromDataComponent(); // 保存数据到组件
+            prescripts.loadFromDataComponent();
             LOGGER.info("Loaded prescript data for player {} on login", player.getName().getString());
         }
     }

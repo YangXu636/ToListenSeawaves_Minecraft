@@ -11,9 +11,10 @@ import net.minecraft.world.effect.MobEffect;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.GuiGraphics;
 
+import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.ToListenSeawaves;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.init.ToListenSeawavesMobEffects;
 
-@EventBusSubscriber
+@EventBusSubscriber(modid = ToListenSeawaves.MOD_ID)
 public class KarmaObstacleMobEffect extends MobEffect {
 	public KarmaObstacleMobEffect() {
 		super(MobEffectCategory.NEUTRAL, -13434880);

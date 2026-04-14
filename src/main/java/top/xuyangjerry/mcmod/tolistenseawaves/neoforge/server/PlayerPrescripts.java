@@ -4,7 +4,6 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.advancements.*;
 import net.minecraft.advancements.criterion.MinMaxBounds;
 import net.minecraft.resources.Identifier;
-import net.minecraft.server.ServerAdvancementManager;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.common.util.FakePlayer;
 import org.jspecify.annotations.Nullable;
@@ -70,7 +69,7 @@ public class PlayerPrescripts {
 
     public boolean IsExpired() {
         if (this.currentPrescript == null) {
-            return true;
+            return false;
         }
         return this.currentPrescript.value().timeLimitTicks() > 0 && this.currentProgress.getTicks() > this.currentPrescript.value().timeLimitTicks();
     }
@@ -116,7 +115,12 @@ public class PlayerPrescripts {
 
     public void saveToDataComponent() {
         Optional<Identifier> op_id = currentPrescript != null ? Optional.ofNullable(currentPrescript.id()) : Optional.empty();
-        this.setCurrentPrescript(player, new PlayerPrescriptDataComponent(this.completeCount, op_id, currentProgress, this.remainingCdTicks));
+        PlayerPrescriptDataComponent pdc = new PlayerPrescriptDataComponent(this.completeCount, op_id, currentProgress, this.remainingCdTicks);
+        if (this.setCurrentPrescript(player, pdc)) {
+            LOGGER.info("Success saving! pdc={}", pdc);
+        } else {
+            LOGGER.warn("Can't save!");
+        }
     }
 
     // 停止监听当前Prescript的触发器
@@ -141,20 +145,21 @@ public class PlayerPrescripts {
     }
 
     // 检查无条件Prescript自动完成
-    private void checkForAutomaticTriggers(ServerPrescriptManager manager) {
-        if (currentPrescript == null) return;
+    public boolean checkForAutomaticTriggers(ServerPrescriptManager manager) {
+        if (currentPrescript == null) return false;
         Prescript prescript = currentPrescript.value();
-        if (prescript.criteria().isEmpty()) {
-            award(currentPrescript, "");
-            prescript.rewards().grant(this.player);
+        if (!this.currentProgress.isDone()) {
+            return false;
         }
+        award(currentPrescript, "");
+        prescript.rewards().grant(this.player);
+        stopListening();
+        return true;
     }
 
     // 授予Prescript进度（核心方法）
     public boolean award(PrescriptHolder prescript, String criterionKey) {
         if (player instanceof FakePlayer) return false;
-
-        //this.remainingCdTicks =
 
         if (this.currentPrescript != null && !this.currentPrescript.equals(prescript)) {
             stopListening();
@@ -164,7 +169,7 @@ public class PlayerPrescripts {
 
         boolean flag = false;
         boolean wasDone = currentProgress.isDone();
-        if (currentProgress.grantProgress(criterionKey)) {
+        if (currentProgress.grantProgress(criterionKey, prescript.value().orderedRequirements())) {
             unregisterCurrentPrescriptListeners();
             this.progressChanged = true;
             flag = true;
@@ -202,11 +207,8 @@ public class PlayerPrescripts {
 
     public void revoke() {
         if (this.currentPrescript == null) return ;
-
         PrescriptPublisher.sendPrescriptFailMessage(this.player, this.currentPrescript);
-        this.currentProgress = new PrescriptProgress();
-        stopListening();
-        this.progressChanged = true;
+        this.clearCurrentPrescript();
         saveToDataComponent();
     }
 
@@ -224,7 +226,6 @@ public class PlayerPrescripts {
         }
     }
 
-    // 注销当前Prescript的触发器监听
     private void unregisterCurrentPrescriptListeners() {
         if (currentPrescript == null) return;
 
@@ -256,24 +257,6 @@ public class PlayerPrescripts {
         ));
     }
 
-    // 同步进度到客户端（精简版）
-    /*public void flushDirty(ServerPlayer player, boolean showAdvancements) {
-        if (isFirstPacket || progressChanged) {
-            Map<Identifier, PrescriptProgress> progressMap = new HashMap<>();
-            if (currentPrescript != null && progressChanged) {
-                progressMap.put(currentPrescript.id(), currentProgress);
-            }
-
-            // 发送精简的进度同步包
-            *//*player.connection.send(new ClientboundUpdateAdvancementsPacket(
-                    isFirstPacket, Collections.emptySet(), Collections.emptySet(), progressMap, showAdvancements
-            ));*//*
-
-            this.isFirstPacket = false;
-            this.progressChanged = false;
-        }
-    }*/
-
     // 获取或初始化当前Prescript进度（单例逻辑）
     public PrescriptProgress getOrStartProgress(PrescriptHolder prescript) {
         if (!prescript.equals(this.currentPrescript)) {
@@ -303,7 +286,10 @@ public class PlayerPrescripts {
     }
 
     public int getCompleteCount() {
-        return (int)completeCount;
+        if (this.currentPrescript == null) {
+            return 0;
+        }
+        return this.currentProgress.countCompletedRequirements();
     }
 
     public int getTotalCount() {

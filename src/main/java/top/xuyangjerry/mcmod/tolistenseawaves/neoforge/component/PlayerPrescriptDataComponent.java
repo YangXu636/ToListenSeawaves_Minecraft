@@ -18,7 +18,7 @@ public record PlayerPrescriptDataComponent(long complete, Optional<Identifier> c
                     Codec.LONG.fieldOf("complete_count").forGetter(PlayerPrescriptDataComponent::complete),
                     Identifier.CODEC.optionalFieldOf("current_id").forGetter(PlayerPrescriptDataComponent::currentId),
                     PrescriptProgress.CODEC.fieldOf("current_progress").forGetter(PlayerPrescriptDataComponent::currentProgress),
-                    Codec.LONG.fieldOf("complete_count").forGetter(PlayerPrescriptDataComponent::remainingCdTicks)
+                    Codec.LONG.fieldOf("remaining_cd_ticks").forGetter(PlayerPrescriptDataComponent::remainingCdTicks)
             ).apply(instance, PlayerPrescriptDataComponent::new)
     );
 
@@ -29,4 +29,14 @@ public record PlayerPrescriptDataComponent(long complete, Optional<Identifier> c
             ByteBufCodecs.LONG, PlayerPrescriptDataComponent::remainingCdTicks,
             PlayerPrescriptDataComponent::new
     );
+
+    @Override
+    public String toString() {
+        return "PlayerPrescriptDataComponent{" +
+                "complete=" + complete +
+                ", currentId=" + currentId +
+                ", currentProgress=" + currentProgress +
+                ", remainingCdTicks=" + remainingCdTicks +
+                '}';
+    }
 }

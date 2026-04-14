@@ -6,11 +6,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.contextualbar.ContextualBarRenderer;
 import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 
 public class PrescriptDataBarRenderer implements ContextualBarRenderer {
@@ -72,7 +69,6 @@ public class PrescriptDataBarRenderer implements ContextualBarRenderer {
         int blueProgressWidth = Mth.ceil(blueProgress * WIDTH);
         int yellowProgressWidth = Mth.ceil(remainingTimeRatio * WIDTH);
 
-        // 1. 绘制蓝色进度条（完成数比例，等分逻辑已在背景分割线体现）
         if (blueProgressWidth > 0) {
             guiGraphics.blitSprite(
                     RenderPipelines.GUI_TEXTURED,
@@ -83,8 +79,6 @@ public class PrescriptDataBarRenderer implements ContextualBarRenderer {
                     blueProgressWidth, SINGLE_BAR_HEIGHT
             );
         }
-
-        // 2. 绘制黄色进度条（剩余时间比例，无需等分）
         int yellowBarTop = barTop + SINGLE_BAR_HEIGHT + BAR_GAP;
         if (yellowProgressWidth > 0) {
             guiGraphics.blitSprite(

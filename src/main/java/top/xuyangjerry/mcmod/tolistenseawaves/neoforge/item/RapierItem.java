@@ -16,6 +16,7 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.core.component.DataComponents;
 
+import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.ToListenSeawaves;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.component.MorphStoredItemDataComponent;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.init.ToListenSeawavesDataComponents;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.init.ToListenSeawavesItems;
@@ -23,7 +24,7 @@ import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.interfaces.IMorphCore;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.interfaces.IMorphDerived;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.tool.MorphItemHelper;
 
-@EventBusSubscriber
+@EventBusSubscriber(modid = ToListenSeawaves.MOD_ID)
 public class RapierItem extends Item implements IMorphDerived {
 	//private static final ToolMaterial TOOL_MATERIAL = new ToolMaterial(BlockTags.INCORRECT_FOR_NETHERITE_TOOL, 0, 4f, 0, 2, TagKey.create(Registries.ITEM, ResourceLocation.parse("to_listen_seawaves:rapier_repair_items")));
 
