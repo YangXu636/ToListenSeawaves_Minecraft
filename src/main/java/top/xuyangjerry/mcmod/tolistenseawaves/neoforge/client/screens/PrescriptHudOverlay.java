@@ -2,13 +2,19 @@ package top.xuyangjerry.mcmod.tolistenseawaves.neoforge.client.screens;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
+import net.neoforged.neoforge.client.gui.GuiLayer;
+import net.neoforged.neoforge.client.gui.GuiLayerManager;
+import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import org.slf4j.Logger;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.ToListenSeawaves;
@@ -24,20 +30,25 @@ public class PrescriptHudOverlay {
 
     @SubscribeEvent
     public static void onRenderExperienceBar(RenderGuiLayerEvent.Pre event) {
-        if (!event.getName().equals(Identifier.withDefaultNamespace("contextual_info_bar_background"))
-                && !event.getName().equals(Identifier.withDefaultNamespace("experience_level"))
-                && !event.getName().equals(Identifier.withDefaultNamespace("contextual_info_bar"))) {
+        if (!event.getName().equals(VanillaGuiLayers.CONTEXTUAL_INFO_BAR_BACKGROUND)
+                && !event.getName().equals(VanillaGuiLayers.EXPERIENCE_LEVEL)
+                && !event.getName().equals(VanillaGuiLayers.CONTEXTUAL_INFO_BAR)) {
             return;
         }
-        Minecraft mc = Minecraft.getInstance();
         ClientPrescriptData prescriptData = ClientPrescriptData.getInstance();
         if (prescriptData.isHoldingItemA() && prescriptData.hasActiveTask()) {
             event.setCanceled(true);
-            if (event.getName().equals(Identifier.withDefaultNamespace("experience_level"))) {
-                PrescriptDataBarRenderer renderer = new PrescriptDataBarRenderer(mc, prescriptData.getCurrentTaskDesc(), prescriptData.getCompletedCount(), prescriptData.getTotalCount(), (float) prescriptData.getRemainingTicks() / prescriptData.getTimeLimit());
-                renderer.renderBackground(event.getGuiGraphics(), event.getPartialTick());
-                renderer.render(event.getGuiGraphics(), event.getPartialTick());
-            }
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.NORMAL)
+    public static void eventHandler(RenderGuiEvent.Pre event) {
+        Minecraft mc = Minecraft.getInstance();
+        ClientPrescriptData prescriptData = ClientPrescriptData.getInstance();
+        if (prescriptData.isHoldingItemA() && prescriptData.hasActiveTask()) {
+            PrescriptDataBarRenderer renderer = new PrescriptDataBarRenderer(mc, prescriptData.getCurrentTaskDesc(), prescriptData.getCompletedCount(), prescriptData.getTotalCount(), (float) prescriptData.getRemainingTicks() / prescriptData.getTimeLimit());
+            renderer.renderBackground(event.getGuiGraphics(), event.getPartialTick());
+            renderer.render(event.getGuiGraphics(), event.getPartialTick());
         }
     }
 

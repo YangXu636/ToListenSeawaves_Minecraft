@@ -17,6 +17,8 @@ import org.slf4j.Logger;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.StreamSupport;
 
 public class PrescriptProgress implements Comparable<PrescriptProgress> {
     public static final Logger LOGGER = LogUtils.getLogger();
@@ -75,9 +77,41 @@ public class PrescriptProgress implements Comparable<PrescriptProgress> {
         return true;
     }
 
+    private OptionalInt getRequirementGroupIndex(String criterionName) {
+        List<List<String>> requirementGroups = this.requirements.requirements();
+        for (int i = 0; i < requirementGroups.size(); i++) {
+            List<String> group = requirementGroups.get(i);
+            if (group.contains(criterionName)) {
+                return OptionalInt.of(i);
+            }
+        }
+        return OptionalInt.empty();
+    }
+
+    private boolean areAllPreviousGroupsCompleted(int targetGroupIndex) {
+        List<List<String>> requirementGroups = this.requirements.requirements();
+        for (int i = 0; i < targetGroupIndex; i++) {
+            List<String> prevGroup = requirementGroups.get(i);
+            boolean isPrevGroupDone = prevGroup.stream().anyMatch(this::isCriterionDone);
+            if (!isPrevGroupDone) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isCriterionInValidOrder(String criterionName) {
+        OptionalInt groupIndexOpt = getRequirementGroupIndex(criterionName);
+        if (groupIndexOpt.isEmpty()) {
+            return false;
+        }
+        int targetGroupIndex = groupIndexOpt.getAsInt();
+        return areAllPreviousGroupsCompleted(targetGroupIndex);
+    }
+
     public boolean grantProgress(String criterionName, boolean isOrdered) {
         CriterionProgress criterionprogress = this.criteria.get(criterionName);
-        if (criterionprogress != null && !criterionprogress.isDone() && (!isOrdered || this.criteria.entrySet().stream().takeWhile(entry -> !entry.getKey().equals(criterionName)).allMatch(entry -> entry.getValue().isDone()))) {
+        if (criterionprogress != null && !criterionprogress.isDone() && (!isOrdered || this.isCriterionInValidOrder(criterionName))) {
             criterionprogress.grant();
             return true;
         }
@@ -89,9 +123,8 @@ public class PrescriptProgress implements Comparable<PrescriptProgress> {
         if (criterionprogress != null && criterionprogress.isDone()) {
             criterionprogress.revoke();
             return true;
-        } else {
-            return false;
         }
+        return false;
     }
 
     public String toString() {
@@ -123,34 +156,12 @@ public class PrescriptProgress implements Comparable<PrescriptProgress> {
         return criterionprogress != null && criterionprogress.isDone();
     }
 
-    /*public float getPercent() {
-        if (this.criteria.isEmpty()) {
-            return 0.0F;
-        } else {
-            float f = (float)this.requirements.size();
-            float f1 = (float)this.countCompletedRequirements();
-            return f1 / f;
-        }
-    }*/
-
     public int getTotalCount() {
         return this.requirements.size();
     }
 
-    /*public @Nullable Component getProgressText() {
-        if (this.criteria.isEmpty()) {
-            return null;
-        }
-        int i = this.requirements.size();
-        if (i <= 1) {
-            return null;
-        }
-        int j = this.countCompletedRequirements();
-        return Component.translatable("prescript.progress", new Object[]{j, i});
-    }*/
-
     public int countCompletedRequirements() {
-        return this.requirements.count(this::isCriterionDone);
+        return StreamSupport.stream(this.getCompletedCriteria().spliterator(), false).toList().size();
     }
 
     public Iterable<String> getRemainingCriteria() {

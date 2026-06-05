@@ -11,6 +11,9 @@ import org.slf4j.Logger;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.component.PlayerPrescriptDataComponent;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.init.ToListenSeawavesAttachmentType;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.prescripts.*;
+import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.prescripts.criterion.PlayerMovementTrigger;
+import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.prescripts.criterion.PlayerRotationTrigger;
+import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.tool.DataStructures;
 
 import java.util.*;
 
@@ -264,9 +267,15 @@ public class PlayerPrescripts {
             this.currentProgress = new PrescriptProgress();
             this.currentProgress.update(prescript.value().requirements());
             this.progressChanged = true;
+            this.initTriggerState();
             saveToDataComponent();
         }
         return this.currentProgress;
+    }
+
+    public void initTriggerState() {
+        PlayerRotationTrigger.PLAYER_ROTATION_STATE.computeIfAbsent(this.player, DataStructures.RotationState::new).init(this.player);
+        PlayerMovementTrigger.PLAYER_MOVEMENT_STATE.computeIfAbsent(this.player, DataStructures.MovementState::new).init(this.player.position());
     }
 
     //private void markForVisibilityUpdate(PrescriptHolder holder) {}
@@ -277,6 +286,7 @@ public class PlayerPrescripts {
         this.currentPrescript = null;
         this.currentProgress = new PrescriptProgress();
         this.progressChanged = true;
+        this.initTriggerState();
         saveToDataComponent();
     }
 

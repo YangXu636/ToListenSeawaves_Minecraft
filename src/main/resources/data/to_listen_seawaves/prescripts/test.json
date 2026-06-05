@@ -1,32 +1,73 @@
 {
   "display": {
     "description": {
-      "text": "表白1"
+      "text": ""
     },
     "show_time": true
   },
-  "time_limit_ticks": 3000,
+  "time_limit_ticks": 6000,
   "ordered_requirements": true,
   "criteria": {
-    "kill_skeleton": {
+    "message": {
       "trigger": "to_listen_seawaves:send_message",
       "conditions": {
         "messages": ["111"]
       }
     },
-    "equip_iron_chestplate": {
-      "trigger": "to_listen_seawaves:any_block_use",
+    "turn": {
+      "trigger": "to_listen_seawaves:player_rotation",
       "conditions": {
-        "location": [
+        "yaw": {
+          "max": -1080
+        }
+      }
+    },
+    "move1": {
+      "trigger": "to_listen_seawaves:player_movement",
+      "conditions": {
+        "world_x": {
+          "min": 3
+        }
+      }
+    },
+    "move2": {
+      "trigger": "to_listen_seawaves:player_movement",
+      "conditions": {
+        "relative_x": {
+          "max": -3
+        }
+      }
+    },
+    "hunt": {
+      "trigger": "to_listen_seawaves:player_hurt_entity",
+      "conditions": {
+        "entity": [
           {
-            "condition": "block_state_property",
-            "block": "minecraft:anvil"
+            "condition": "minecraft:entity_properties",
+            "entity": "this"
+          }
+        ],
+        "damage": {
+          "source": {
+            "is_projectile": true,
+            "projectile": "minecraft:arrow"
+          }
+        },
+        "player": [
+          {
+            "condition": "minecraft:entity_properties",
+            "entity": "this",
+            "predicate": {
+              "flags": {
+                "is_sneaking": true
+              }
+            }
           }
         ]
       }
     }
   },
-  "requirements": [["equip_iron_chestplate"], ["kill_skeleton"]],
+  "requirements": [["message"], ["turn"], ["move1"], ["move2"], ["hunt"]],
   "publish_conditions": [[]],
   "rewards": {
     "experience": 5

@@ -2,6 +2,11 @@
   "required": true,
   "package": "top.xuyangjerry.mcmod.tolistenseawaves.neoforge.mixin",
   "mixins": [
+    "BeeNestDestroyedTriggerMixin",
+    "BredAnimalsTriggerMixin",
+    "BrewedPotionTriggerMixin",
+    "ChanneledLightningTriggerMixin",
+    "PlayerHurtEntityTriggerMixin"
   ],
   "client": [
     "BlockElement_DeserializerMixin"
