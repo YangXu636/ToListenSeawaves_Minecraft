@@ -23,14 +23,18 @@ public class ToListenSeawavesNetworkRegistries {
                 PrescriptSyncPacket.STREAM_CODEC,
                 (packet, context) -> {
                     // 客户端处理同步包
-                    context.enqueueWork(() -> ClientPrescriptData.getInstance().updateTaskData(
-                            packet.prescriptId().orElse(null),
-                            packet.prescriptDesc().orElse(null),
-                            packet.timeLimit(),
-                            packet.remainingTicks(),
-                            packet.totalCount(),
-                            packet.completedCount()
-                    ));
+                    context.enqueueWork(() -> {
+                        ClientPrescriptData data = ClientPrescriptData.getInstance();
+                        data.updateTaskData(
+                                packet.prescriptId().orElse(null),
+                                packet.prescriptDesc().orElse(null),
+                                packet.timeLimit(),
+                                packet.remainingTicks(),
+                                packet.totalCount(),
+                                packet.completedCount()
+                        );
+                        data.setAnimationPlaying(packet.animationPlaying());
+                    });
                 }
         );
     }

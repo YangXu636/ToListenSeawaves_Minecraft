@@ -12,6 +12,7 @@ public class ClientPrescriptData {
     private long remainingTicks = 0;
     private int totalCount = 0;
     private int completedCount = 0;
+    private boolean animationPlaying = false;
 
     private ClientPrescriptData() {}
 
@@ -38,6 +39,7 @@ public class ClientPrescriptData {
         this.remainingTicks = 0;
         this.totalCount = 0;
         this.completedCount = 0;
+        this.animationPlaying = false;
     }
 
     public boolean isHoldingItemA() {
@@ -64,4 +66,6 @@ public class ClientPrescriptData {
     public int getTotalCount() { return totalCount; }
     public int getCompletedCount() { return completedCount; }
     public boolean hasActiveTask() { return currentTaskId != null; }
+    public boolean isAnimationPlaying() { return animationPlaying; }
+    public void setAnimationPlaying(boolean playing) { this.animationPlaying = playing; }
 }

@@ -2,9 +2,6 @@ package top.xuyangjerry.mcmod.tolistenseawaves.neoforge.client.screens;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
@@ -12,8 +9,6 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
-import net.neoforged.neoforge.client.gui.GuiLayer;
-import net.neoforged.neoforge.client.gui.GuiLayerManager;
 import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import org.slf4j.Logger;
@@ -62,8 +57,8 @@ public class PrescriptHudOverlay {
             return;
         }
         ClientPrescriptData prescriptData = ClientPrescriptData.getInstance();
-        if (prescriptData.isHoldingItemA() && prescriptData.hasActiveTask()) {
-            player.displayClientMessage(Component.literal(prescriptData.getCurrentTaskDesc()), true);
+        if (prescriptData.isHoldingItemA() && prescriptData.hasActiveTask() && !prescriptData.isAnimationPlaying()) {
+            //player.displayClientMessage(Component.literal(prescriptData.getCurrentTaskDesc()), true);
         }
     }
 }

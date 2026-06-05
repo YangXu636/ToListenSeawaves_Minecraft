@@ -117,7 +117,8 @@ public class PrescriptPublisher {
                 holder.value().timeLimitTicks(),
                 remainingTicks,
                 prescripts.getTotalCount(),
-                prescripts.getCompleteCount()
+                prescripts.getCompleteCount(),
+                PrescriptPublishAnimation.isActive(player.getUUID())
         );
         PrescriptSyncPacket.sendToPlayer(player, packet);
     }
@@ -140,25 +141,8 @@ public class PrescriptPublisher {
     }
 
     private void sendPrescriptPublishMessage(ServerPlayer player, PrescriptHolder holder) {
-        // 1. 聊天消息（带MOD前缀）
-        /*player.sendSystemMessage(Component.translatable(
-                "prescript.publish.chat",
-                Component.literal(holder.id().getPath()),
-                Component.literal(String.valueOf(holder.value().timeLimitTicks()))
-        ));
-
-        // 2. 标题提示（短时间显示）
-        *//*player.send(
-                Component.translatable("prescript.publish.title"),
-                Component.translatable("prescript.publish.subtitle", holder.id().getPath()),
-                10, 40, 10 // 淡入10ticks，显示40ticks，淡出10ticks
-        );*//*
-
-        // 3. 动作栏提示
-        player.displayClientMessage(Component.translatable(
-                "prescript.publish.actionbar",
-                holder.value().display().description()
-        ), true);*/
+        String eventDesc = holder.value().display().description().getString();
+        PrescriptPublishAnimation.start(player, eventDesc);
     }
 
     public static void sendPrescriptCompleteMessage(ServerPlayer player, PrescriptHolder prescript) {
@@ -175,7 +159,10 @@ public class PrescriptPublisher {
         if (event.getLevel().isClientSide()) {
             return;
         }
-        Objects.requireNonNull(event.getLevel().getServer()).getPlayerList().getPlayers().forEach(player -> PrescriptPublisher.getInstance().updatePlayerPrescriptTick(player));
+        Objects.requireNonNull(event.getLevel().getServer()).getPlayerList().getPlayers().forEach(player -> {
+            PrescriptPublishAnimation.tickPlayer(player);
+            PrescriptPublisher.getInstance().updatePlayerPrescriptTick(player);
+        });
     }
 
     @SubscribeEvent
@@ -207,9 +194,10 @@ public class PrescriptPublisher {
         if (!(event.getEntity() instanceof ServerPlayer player)) {
             return;
         }
+        PrescriptPublishAnimation.remove(player.getUUID());
         PlayerPrescripts prescripts = getPrescript(player);
         if (prescripts != null) {
-            prescripts.saveToDataComponent(); // 保存数据到组件
+            prescripts.saveToDataComponent();
             LOGGER.info("Saved prescript data for player {} on logout", player.getName().getString());
         }
     }
