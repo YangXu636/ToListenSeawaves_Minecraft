@@ -173,7 +173,9 @@ public class PlayerPrescripts {
         boolean flag = false;
         boolean wasDone = currentProgress.isDone();
         if (currentProgress.grantProgress(criterionKey, prescript.value().orderedRequirements())) {
+            // 进度成功授予：反注册已完成的 criterion，注册下一组
             unregisterCurrentPrescriptListeners();
+            registerCurrentPrescriptListeners();
             this.progressChanged = true;
             flag = true;
             if (!wasDone && currentProgress.isDone()) {
@@ -185,7 +187,9 @@ public class PlayerPrescripts {
         if (!wasDone && currentProgress.isDone()) {
             this.progressChanged = true;
         }
-        saveToDataComponent();
+        if (flag || this.progressChanged) {
+            saveToDataComponent();
+        }
         return flag;
     }
 
@@ -210,20 +214,21 @@ public class PlayerPrescripts {
 
     public void revoke() {
         if (this.currentPrescript == null) return ;
-        PrescriptPublisher.sendPrescriptFailMessage(this.player, this.currentPrescript);
         this.clearCurrentPrescript();
         saveToDataComponent();
     }
 
-    // 注册当前Prescript的触发器监听
+    // 注册当前Prescript的触发器监听（有序模式下只注册当前可完成组的监听器）
     void registerCurrentPrescriptListeners() {
         if (currentPrescript == null || currentProgress.isDone()) return;
 
         Prescript prescript = currentPrescript.value();
+        boolean ordered = prescript.orderedRequirements();
+        Set<String> registerable = currentProgress.getRegisterableCriteria(ordered);
+
         for (Map.Entry<String, PrescriptCriterion<?>> entry : prescript.criteria().entrySet()) {
             String criterionKey = entry.getKey();
-            CriterionProgress criterionProgress = currentProgress.getCriterion(criterionKey);
-            if (criterionProgress != null && !criterionProgress.isDone()) {
+            if (registerable.contains(criterionKey)) {
                 registerListener(currentPrescript, criterionKey, entry.getValue());
             }
         }

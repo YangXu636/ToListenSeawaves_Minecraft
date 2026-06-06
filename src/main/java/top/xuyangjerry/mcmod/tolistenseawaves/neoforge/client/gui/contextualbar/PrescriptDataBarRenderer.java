@@ -24,13 +24,15 @@ public class PrescriptDataBarRenderer implements ContextualBarRenderer {
     private final int completedCount;
     private final int totalCount;
     private final float remainingTimeRatio;
+    private final boolean showTime;
 
-    public PrescriptDataBarRenderer(Minecraft minecraft, String prescriptTitle, int completedCount, int totalCount, float remainingTimeRatio) {
+    public PrescriptDataBarRenderer(Minecraft minecraft, String prescriptTitle, int completedCount, int totalCount, float remainingTimeRatio, boolean showTime) {
         this.minecraft = minecraft;
         this.prescriptTitle = prescriptTitle;
         this.completedCount = Mth.clamp(completedCount, 0, totalCount);
         this.totalCount = Math.max(totalCount, 1);
         this.remainingTimeRatio = Mth.clamp(remainingTimeRatio, 0.0F, 1.0F);
+        this.showTime = showTime;
     }
 
     @Override
@@ -39,24 +41,26 @@ public class PrescriptDataBarRenderer implements ContextualBarRenderer {
         int barLeft = left(window);
         int barTop = top(window);
 
-        // 1. 绘制蓝色条背景（上半部分）
+        // 1. 绘制蓝色条背景
         guiGraphics.blitSprite(
                 RenderPipelines.GUI_TEXTURED,
                 BLUE_BAR_BK,
                 barLeft, barTop,
-                WIDTH, SINGLE_BAR_HEIGHT
+                WIDTH, (this.showTime ? SINGLE_BAR_HEIGHT : HEIGHT)
         );
 
-        // 2. 绘制黄色条背景（下半部分，加间隔）
-        int yellowBarTop = barTop + SINGLE_BAR_HEIGHT + BAR_GAP;
-        guiGraphics.blitSprite(
-                RenderPipelines.GUI_TEXTURED,
-                YELLOW_BAR_BK,
-                barLeft, yellowBarTop,
-                WIDTH, SINGLE_BAR_HEIGHT
-        );
+        // 2. 绘制黄色条背景（仅 showTime 时）
+        if (showTime) {
+            int yellowBarTop = barTop + SINGLE_BAR_HEIGHT + BAR_GAP;
+            guiGraphics.blitSprite(
+                    RenderPipelines.GUI_TEXTURED,
+                    YELLOW_BAR_BK,
+                    barLeft, yellowBarTop,
+                    WIDTH, SINGLE_BAR_HEIGHT
+            );
+        }
 
-        // 3. 绘制蓝色条的等分分割线（仅蓝色条需要等分）
+        // 3. 绘制蓝色条的等分分割线
         drawBlueSegmentSeparators(guiGraphics, barLeft, barTop);
     }
 
@@ -67,28 +71,31 @@ public class PrescriptDataBarRenderer implements ContextualBarRenderer {
         int barTop = top(window);
         float blueProgress = (float) completedCount / totalCount;
         int blueProgressWidth = Mth.ceil(blueProgress * WIDTH);
-        int yellowProgressWidth = Mth.ceil(remainingTimeRatio * WIDTH);
 
         if (blueProgressWidth > 0) {
             guiGraphics.blitSprite(
                     RenderPipelines.GUI_TEXTURED,
                     BLUE_BAR_P,
-                    WIDTH, SINGLE_BAR_HEIGHT,
+                    WIDTH, (this.showTime ? SINGLE_BAR_HEIGHT : HEIGHT),
                     0, 0,
                     barLeft, barTop,
-                    blueProgressWidth, SINGLE_BAR_HEIGHT
+                    blueProgressWidth, (this.showTime ? SINGLE_BAR_HEIGHT : HEIGHT)
             );
         }
-        int yellowBarTop = barTop + SINGLE_BAR_HEIGHT + BAR_GAP;
-        if (yellowProgressWidth > 0) {
-            guiGraphics.blitSprite(
-                    RenderPipelines.GUI_TEXTURED,
-                    YELLOW_BAR_P,
-                    WIDTH, SINGLE_BAR_HEIGHT,
-                    0, 0,
-                    barLeft, yellowBarTop,
-                    yellowProgressWidth, SINGLE_BAR_HEIGHT
-            );
+
+        if (showTime) {
+            int yellowProgressWidth = Mth.ceil(remainingTimeRatio * WIDTH);
+            int yellowBarTop = barTop + SINGLE_BAR_HEIGHT + BAR_GAP;
+            if (yellowProgressWidth > 0) {
+                guiGraphics.blitSprite(
+                        RenderPipelines.GUI_TEXTURED,
+                        YELLOW_BAR_P,
+                        WIDTH, SINGLE_BAR_HEIGHT,
+                        0, 0,
+                        barLeft, yellowBarTop,
+                        yellowProgressWidth, SINGLE_BAR_HEIGHT
+                );
+            }
         }
     }
 
@@ -99,7 +106,7 @@ public class PrescriptDataBarRenderer implements ContextualBarRenderer {
             int separatorX = barLeft + (segmentWidth * i);
             guiGraphics.fill(
                     separatorX, barTop,
-                    separatorX + SEGMENT_GAP, barTop + SINGLE_BAR_HEIGHT,
+                    separatorX + SEGMENT_GAP, barTop + (this.showTime ? SINGLE_BAR_HEIGHT : HEIGHT),
                     0xFFCCE5FF
             );
         }

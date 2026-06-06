@@ -84,7 +84,7 @@ public record PrescriptRequirements(List<List<String>> requirements) {
             }
             set.addAll(requirement);
         }
-        if (!Sets.difference(criteria, set).isEmpty()) {
+        if (!Sets.difference(set, criteria).isEmpty()) {
             Set<String> set1 = Sets.difference(set, criteria);
             return DataResult.error(() -> {
                 return "Prescript completion requirements did not exactly match specified criteria. Unknown: " + set1;

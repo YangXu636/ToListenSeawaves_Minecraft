@@ -31,9 +31,10 @@ public class ToListenSeawavesNetworkRegistries {
                                 packet.timeLimit(),
                                 packet.remainingTicks(),
                                 packet.totalCount(),
-                                packet.completedCount()
+                                packet.completedCount(),
+                                packet.animationPlaying(),
+                                packet.showTime()
                         );
-                        data.setAnimationPlaying(packet.animationPlaying());
                     });
                 }
         );

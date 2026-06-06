@@ -11,62 +11,94 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 指令发布/失败时的动作栏动画。
- * 发布：乱码逐字解码为明文 "致 [ {玩家名} ] {事件描述}"（青蓝色）
- * 失败/超时：乱码 + *_ERROR_*（红色）
+ * 指令发布/失败/完成时的动作栏动画。
+ * 发布动画：文本从全部乱码（obfuscated）逐字解码为明文，格式：致 [ {玩家名} ] {事件描述}
+ * 失败动画：乱码 + *_ERROR._*，红色
+ * 完成动画：乱码 + *_CLEAR._*，淡蓝色
  */
 public class PrescriptPublishAnimation {
     private static final Map<UUID, PrescriptPublishAnimation> ACTIVE_ANIMATIONS = new ConcurrentHashMap<>();
 
+    private enum AnimType { PUBLISH, ERROR, CLEAR }
+
     // 发布动画参数
     private static final int PUBLISH_TOTAL_TICKS = 45;
-    private static final int PUBLISH_INITIAL_GARBLE_TICKS = 8;
-    private static final int PUBLISH_REVEAL_TICKS = PUBLISH_TOTAL_TICKS - PUBLISH_INITIAL_GARBLE_TICKS;
+    private static final int PUBLISH_GARBLE_TICKS = 8;
 
     // 失败动画参数
-    private static final int FAIL_TOTAL_TICKS = 35;
-    private static final int FAIL_GARBLE_TICKS = 15;
+    private static final int ERROR_TOTAL_TICKS = 30;
+    private static final int ERROR_GARBLE_TICKS = 10;
+    private static final String ERROR_SUFFIX = "*_ERROR._*";
+
+    // 完成动画参数
+    private static final int CLEAR_TOTAL_TICKS = 30;
+    private static final int CLEAR_GARBLE_TICKS = 10;
+    private static final String CLEAR_SUFFIX = "*_CLEAR._*";
 
     private static final Style HIDDEN_STYLE = Style.EMPTY.withObfuscated(true).withColor(ChatFormatting.DARK_AQUA);
     private static final Style PREFIX_STYLE = Style.EMPTY.withColor(ChatFormatting.AQUA);
-    private static final Style NAME_STYLE = Style.EMPTY.withColor(ChatFormatting.AQUA).withBold(true);
+    private static final Style NAME_STYLE = Style.EMPTY.withColor(ChatFormatting.DARK_AQUA).withBold(true);
     private static final Style SEPARATOR_STYLE = Style.EMPTY.withColor(ChatFormatting.AQUA);
-    private static final Style DESC_STYLE = Style.EMPTY.withColor(ChatFormatting.DARK_AQUA);
+    private static final Style DESC_STYLE = Style.EMPTY.withColor(ChatFormatting.AQUA);
 
-    // 失败动画样式
-    private static final Style FAIL_HIDDEN_STYLE = Style.EMPTY.withObfuscated(true).withColor(ChatFormatting.DARK_RED);
-    private static final Style FAIL_ERROR_STYLE = Style.EMPTY.withColor(ChatFormatting.RED).withBold(true);
+    private static final Style ERROR_HIDDEN_STYLE = Style.EMPTY.withObfuscated(true).withColor(ChatFormatting.DARK_RED);
+    private static final Style ERROR_TEXT_STYLE = Style.EMPTY.withColor(ChatFormatting.RED).withBold(true);
+
+    private static final Style CLEAR_HIDDEN_STYLE = Style.EMPTY.withObfuscated(true).withColor(ChatFormatting.AQUA);
+    private static final Style CLEAR_TEXT_STYLE = Style.EMPTY.withColor(ChatFormatting.AQUA).withBold(true);
 
     private final ServerPlayer player;
     private final String fullText;
     private final int prefixEnd;
     private final int nameEnd;
     private final int separatorEnd;
+    private final AnimType animType;
+    private final int totalTicks;
+    private final int garbleTicks;
     private int tick = 0;
-    private final boolean isFailure;
 
-    private PrescriptPublishAnimation(ServerPlayer player, String eventDesc) {
-        this(player, eventDesc, false);
-    }
-
-    private PrescriptPublishAnimation(ServerPlayer player, String eventDesc, boolean isFailure) {
+    private PrescriptPublishAnimation(ServerPlayer player, String eventDesc, AnimType animType) {
         this.player = player;
-        this.isFailure = isFailure;
+        this.animType = animType;
         String playerName = player.getName().getString();
         String prefix = "致 [ ";
         String separator = " ] ";
-        this.fullText = prefix + playerName + separator + eventDesc;
+        String suffix = switch (animType) {
+            case ERROR -> ERROR_SUFFIX;
+            case CLEAR -> CLEAR_SUFFIX;
+            default -> "";
+        };
+        // 发布动画显示完整文本，失败/完成动画仅显示 suffix
+        if (animType == AnimType.PUBLISH) {
+            this.fullText = prefix + playerName + separator + eventDesc + suffix;
+        } else {
+            this.fullText = suffix;
+        }
         this.prefixEnd = prefix.length();
         this.nameEnd = prefixEnd + playerName.length();
         this.separatorEnd = nameEnd + separator.length();
+        this.totalTicks = switch (animType) {
+            case ERROR -> ERROR_TOTAL_TICKS;
+            case CLEAR -> CLEAR_TOTAL_TICKS;
+            default -> PUBLISH_TOTAL_TICKS;
+        };
+        this.garbleTicks = switch (animType) {
+            case ERROR -> ERROR_GARBLE_TICKS;
+            case CLEAR -> CLEAR_GARBLE_TICKS;
+            default -> PUBLISH_GARBLE_TICKS;
+        };
     }
 
     public static void start(ServerPlayer player, String eventDesc) {
-        ACTIVE_ANIMATIONS.put(player.getUUID(), new PrescriptPublishAnimation(player, eventDesc));
+        ACTIVE_ANIMATIONS.put(player.getUUID(), new PrescriptPublishAnimation(player, eventDesc, AnimType.PUBLISH));
     }
 
-    public static void startFailure(ServerPlayer player, String eventDesc) {
-        ACTIVE_ANIMATIONS.put(player.getUUID(), new PrescriptPublishAnimation(player, eventDesc, true));
+    public static void startError(ServerPlayer player, String eventDesc) {
+        ACTIVE_ANIMATIONS.put(player.getUUID(), new PrescriptPublishAnimation(player, eventDesc, AnimType.ERROR));
+    }
+
+    public static void startClear(ServerPlayer player, String eventDesc) {
+        ACTIVE_ANIMATIONS.put(player.getUUID(), new PrescriptPublishAnimation(player, eventDesc, AnimType.CLEAR));
     }
 
     public static boolean isActive(UUID playerUUID) {
@@ -85,54 +117,60 @@ public class PrescriptPublishAnimation {
     }
 
     private void doTick() {
-        if (isFailure) {
-            doFailureTick();
-        } else {
-            doPublishTick();
+        if (tick >= totalTicks) {
+            ACTIVE_ANIMATIONS.remove(player.getUUID());
+            return;
         }
+
+        switch (animType) {
+            case PUBLISH -> doPublishTick();
+            case ERROR -> doSuffixTick(ERROR_SUFFIX, ERROR_HIDDEN_STYLE, ERROR_TEXT_STYLE);
+            case CLEAR -> doSuffixTick(CLEAR_SUFFIX, CLEAR_HIDDEN_STYLE, CLEAR_TEXT_STYLE);
+        }
+        tick++;
     }
 
     private void doPublishTick() {
-        if (tick >= PUBLISH_TOTAL_TICKS) {
-            ACTIVE_ANIMATIONS.remove(player.getUUID());
-            return;
-        }
-
+        int revealTicks = totalTicks - garbleTicks;
         int revealedCount;
-        if (tick < PUBLISH_INITIAL_GARBLE_TICKS) {
+        if (tick < garbleTicks) {
             revealedCount = 0;
+        } else if (tick >= totalTicks - 1) {
+            revealedCount = fullText.length(); // 最后一帧确保全部解码
         } else {
-            float progress = (float) (tick - PUBLISH_INITIAL_GARBLE_TICKS) / PUBLISH_REVEAL_TICKS;
+            float progress = (float) (tick - garbleTicks) / revealTicks;
             revealedCount = Math.min(Math.round(progress * fullText.length()), fullText.length());
         }
-
         player.displayClientMessage(buildPublishComponent(revealedCount), true);
-        tick++;
     }
 
-    private void doFailureTick() {
-        if (tick >= FAIL_TOTAL_TICKS) {
-            ACTIVE_ANIMATIONS.remove(player.getUUID());
-            return;
-        }
-
-        MutableComponent msg = Component.empty();
-
-        if (tick < FAIL_GARBLE_TICKS) {
-            // 全乱码阶段
-            msg.append(Component.literal(fullText).withStyle(FAIL_HIDDEN_STYLE));
-            msg.append(Component.literal(" *_ERROR_*").withStyle(FAIL_ERROR_STYLE));
+    private void doSuffixTick(String suffix, Style hiddenStyle, Style textStyle) {
+        int revealTicks = totalTicks - garbleTicks;
+        int suffixLen = suffix.length();
+        int textBeforeSuffix = fullText.length() - suffixLen;
+        int revealedSuffixCount;
+        if (tick < garbleTicks) {
+            revealedSuffixCount = 0;
+        } else if (tick >= totalTicks - 1) {
+            revealedSuffixCount = suffixLen; // 最后一帧确保全部解码
         } else {
-            // 乱码逐渐消退，只留下 *_ERROR_*
-            float fadeProgress = (float) (tick - FAIL_GARBLE_TICKS) / (FAIL_TOTAL_TICKS - FAIL_GARBLE_TICKS);
-            if (fadeProgress < 0.5f) {
-                msg.append(Component.literal(fullText).withStyle(FAIL_HIDDEN_STYLE));
-            }
-            msg.append(Component.literal(" *_ERROR_*").withStyle(FAIL_ERROR_STYLE));
+            float progress = (float) (tick - garbleTicks) / revealTicks;
+            revealedSuffixCount = Math.min(Math.round(progress * suffixLen), suffixLen);
         }
 
-        player.displayClientMessage(msg, true);
-        tick++;
+        MutableComponent result = Component.empty();
+        // 前半段始终乱码
+        result.append(Component.literal(fullText.substring(0, textBeforeSuffix)).withStyle(hiddenStyle));
+        // 后半段（suffix）逐字解码
+        if (revealedSuffixCount <= 0) {
+            result.append(Component.literal(suffix).withStyle(hiddenStyle));
+        } else if (revealedSuffixCount >= suffixLen) {
+            result.append(Component.literal(suffix).withStyle(textStyle));
+        } else {
+            result.append(Component.literal(suffix.substring(0, revealedSuffixCount)).withStyle(textStyle));
+            result.append(Component.literal(suffix.substring(revealedSuffixCount)).withStyle(hiddenStyle));
+        }
+        player.displayClientMessage(result, true);
     }
 
     private MutableComponent buildPublishComponent(int revealedCount) {

@@ -12,7 +12,8 @@ public class ClientPrescriptData {
     private long remainingTicks = 0;
     private int totalCount = 0;
     private int completedCount = 0;
-    private boolean animationPlaying = false;
+    public boolean animationPlaying = false;
+    private boolean showTime = true;
 
     private ClientPrescriptData() {}
 
@@ -23,13 +24,15 @@ public class ClientPrescriptData {
         return INSTANCE;
     }
 
-    public void updateTaskData(String taskId, String taskDesc, long timeLimit, long remainingTicks, int totalCount, int completedCount) {
+    public void updateTaskData(String taskId, String taskDesc, long timeLimit, long remainingTicks, int totalCount, int completedCount, boolean animationPlaying, boolean showTime) {
         this.currentTaskId = taskId;
         this.currentTaskDesc = taskDesc;
         this.timeLimit = timeLimit;
         this.remainingTicks = remainingTicks;
         this.totalCount = totalCount;
         this.completedCount = completedCount;
+        this.animationPlaying = animationPlaying;
+        this.showTime = showTime;
     }
 
     public void clear() {
@@ -40,6 +43,7 @@ public class ClientPrescriptData {
         this.totalCount = 0;
         this.completedCount = 0;
         this.animationPlaying = false;
+        this.showTime = true;
     }
 
     public boolean isHoldingItemA() {
@@ -57,6 +61,7 @@ public class ClientPrescriptData {
                 ", remainingTicks=" + remainingTicks +
                 ", totalCount=" + totalCount +
                 ", completedCount=" + completedCount +
+                ", animationPlaying=" + animationPlaying +
                 '}';
     }
 
@@ -66,6 +71,5 @@ public class ClientPrescriptData {
     public int getTotalCount() { return totalCount; }
     public int getCompletedCount() { return completedCount; }
     public boolean hasActiveTask() { return currentTaskId != null; }
-    public boolean isAnimationPlaying() { return animationPlaying; }
-    public void setAnimationPlaying(boolean playing) { this.animationPlaying = playing; }
+    public boolean isShowTime() { return showTime; }
 }

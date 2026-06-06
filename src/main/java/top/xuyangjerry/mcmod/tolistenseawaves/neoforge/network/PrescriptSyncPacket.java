@@ -14,14 +14,14 @@ import java.util.Optional;
 public record PrescriptSyncPacket(Optional<String> prescriptId, Optional<String> prescriptDesc,
                                   long timeLimit, long remainingTicks,
                                   int totalCount, int completedCount,
-                                  boolean animationPlaying)
+                                  boolean animationPlaying, boolean showTime)
         implements CustomPacketPayload {
     public static final Type<@NotNull PrescriptSyncPacket> TYPE = new Type<>(Identifier.fromNamespaceAndPath(ToListenSeawaves.MOD_ID, "prescript_sync"));
     public static final StreamCodec<FriendlyByteBuf, PrescriptSyncPacket> STREAM_CODEC = StreamCodec.of(
             PrescriptSyncPacket::write,
             PrescriptSyncPacket::read
     );
-    public static final PrescriptSyncPacket EMPTY = new PrescriptSyncPacket(Optional.empty(), Optional.empty(), 0L, 0L, 0, 0, false);
+    public static final PrescriptSyncPacket EMPTY = new PrescriptSyncPacket(Optional.empty(), Optional.empty(), 0L, 0L, 0, 0, false, true);
 
     private static void write(FriendlyByteBuf buf, PrescriptSyncPacket packet) {
         buf.writeOptional(packet.prescriptId, FriendlyByteBuf::writeUtf);
@@ -31,6 +31,7 @@ public record PrescriptSyncPacket(Optional<String> prescriptId, Optional<String>
         buf.writeInt(packet.totalCount);
         buf.writeInt(packet.completedCount);
         buf.writeBoolean(packet.animationPlaying);
+        buf.writeBoolean(packet.showTime);
     }
 
     private static PrescriptSyncPacket read(FriendlyByteBuf buf) {
@@ -41,6 +42,7 @@ public record PrescriptSyncPacket(Optional<String> prescriptId, Optional<String>
                 buf.readLong(),
                 buf.readInt(),
                 buf.readInt(),
+                buf.readBoolean(),
                 buf.readBoolean()
         );
     }

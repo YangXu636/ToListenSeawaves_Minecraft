@@ -41,7 +41,7 @@ public class PrescriptHudOverlay {
         Minecraft mc = Minecraft.getInstance();
         ClientPrescriptData prescriptData = ClientPrescriptData.getInstance();
         if (prescriptData.isHoldingItemA() && prescriptData.hasActiveTask()) {
-            PrescriptDataBarRenderer renderer = new PrescriptDataBarRenderer(mc, prescriptData.getCurrentTaskDesc(), prescriptData.getCompletedCount(), prescriptData.getTotalCount(), (float) prescriptData.getRemainingTicks() / prescriptData.getTimeLimit());
+            PrescriptDataBarRenderer renderer = new PrescriptDataBarRenderer(mc, prescriptData.getCurrentTaskDesc(), prescriptData.getCompletedCount(), prescriptData.getTotalCount(), (float) prescriptData.getRemainingTicks() / prescriptData.getTimeLimit(), prescriptData.isShowTime());
             renderer.renderBackground(event.getGuiGraphics(), event.getPartialTick());
             renderer.render(event.getGuiGraphics(), event.getPartialTick());
         }
@@ -57,7 +57,7 @@ public class PrescriptHudOverlay {
             return;
         }
         ClientPrescriptData prescriptData = ClientPrescriptData.getInstance();
-        if (prescriptData.isHoldingItemA() && prescriptData.hasActiveTask() && !prescriptData.isAnimationPlaying()) {
+        if (prescriptData.isHoldingItemA() && prescriptData.hasActiveTask() && !prescriptData.animationPlaying) {
             //player.displayClientMessage(Component.literal(prescriptData.getCurrentTaskDesc()), true);
         }
     }

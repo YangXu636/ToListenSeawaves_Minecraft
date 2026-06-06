@@ -3,7 +3,7 @@
     "description": {
       "text": "表白2"
     },
-    "show_time": true
+    "show_time": false
   },
   "time_limit_ticks": 6000,
   "cd": 100,

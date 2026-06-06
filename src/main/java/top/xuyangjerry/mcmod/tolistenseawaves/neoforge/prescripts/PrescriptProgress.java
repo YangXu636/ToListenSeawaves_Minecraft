@@ -100,6 +100,36 @@ public class PrescriptProgress implements Comparable<PrescriptProgress> {
         return true;
     }
 
+    /**
+     * 获取当前可注册监听器的 criterion 名称集合。
+     * 有序模式下，只有前序组全部完成时，当前组的 criterion 才可注册；
+     * 无序模式下，所有未完成的 criterion 都可注册。
+     */
+    public Set<String> getRegisterableCriteria(boolean ordered) {
+        Set<String> result = new java.util.HashSet<>();
+        List<List<String>> groups = this.requirements.requirements();
+        for (int i = 0; i < groups.size(); i++) {
+            List<String> group = groups.get(i);
+            if (ordered && i > 0 && !areAllPreviousGroupsCompleted(i)) {
+                break; // 有序模式下，前序组未完成则后续组不可注册
+            }
+            for (String criterionName : group) {
+                CriterionProgress progress = this.criteria.get(criterionName);
+                if (progress != null && !progress.isDone()) {
+                    result.add(criterionName);
+                }
+            }
+            // 有序模式下，当前组还有未完成的 criterion，后续组不可注册
+            if (ordered && group.stream().anyMatch(name -> {
+                CriterionProgress p = this.criteria.get(name);
+                return p == null || !p.isDone();
+            })) {
+                break;
+            }
+        }
+        return result;
+    }
+
     private boolean isCriterionInValidOrder(String criterionName) {
         OptionalInt groupIndexOpt = getRequirementGroupIndex(criterionName);
         if (groupIndexOpt.isEmpty()) {

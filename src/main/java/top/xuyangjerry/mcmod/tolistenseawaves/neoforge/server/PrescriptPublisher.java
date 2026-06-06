@@ -21,6 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @EventBusSubscriber(modid = ToListenSeawaves.MOD_ID)
 public class PrescriptPublisher {
+    public static final int BASE_CD_TICKS = 120;
     private static final Logger LOGGER = LogUtils.getLogger();
     private static PrescriptPublisher INSTANCE;
     private final Map<UUID, PlayerPrescripts> playerPrescripts = new ConcurrentHashMap<>();
@@ -62,13 +63,18 @@ public class PrescriptPublisher {
         syncPrescriptDataToClient(player, prescripts);
 
         if (!prescripts.IsExpired() && prescripts.IsCompleted()) {
+            PrescriptHolder completedPrescript = prescripts.getCurrentPrescript();
+            int cd = BASE_CD_TICKS + prescripts.getRandomCd(completedPrescript.value().cd());
             prescripts.clearCurrentPrescript();
-            sendPrescriptCompleteMessage(player, prescripts.getCurrentPrescript());
+            prescripts.remainingCdTicks = cd;
+            sendPrescriptCompleteMessage(player, completedPrescript);
             PrescriptSyncPacket.sendToPlayer(player, PrescriptSyncPacket.EMPTY);
         } else if (prescripts.IsExpired()) {
+            PrescriptHolder expiredPrescript = prescripts.getCurrentPrescript();
+            int cd = expiredPrescript != null ? BASE_CD_TICKS + prescripts.getRandomCd(expiredPrescript.value().cd()) : BASE_CD_TICKS;
             prescripts.revoke();
-            prescripts.clearCurrentPrescript();
-            sendPrescriptExpireMessage(player, prescripts.getCurrentPrescript());
+            prescripts.remainingCdTicks = cd;
+            sendPrescriptExpireMessage(player, expiredPrescript);
             PrescriptSyncPacket.sendToPlayer(player, PrescriptSyncPacket.EMPTY);
         }
     }
@@ -118,7 +124,8 @@ public class PrescriptPublisher {
                 remainingTicks,
                 prescripts.getTotalCount(),
                 prescripts.getCompleteCount(),
-                PrescriptPublishAnimation.isActive(player.getUUID())
+                PrescriptPublishAnimation.isActive(player.getUUID()),
+                holder.value().display().showTime()
         );
         PrescriptSyncPacket.sendToPlayer(player, packet);
     }
@@ -146,12 +153,18 @@ public class PrescriptPublisher {
     }
 
     public static void sendPrescriptCompleteMessage(ServerPlayer player, PrescriptHolder prescript) {
+        String eventDesc = prescript != null ? prescript.value().display().description().getString() : "";
+        PrescriptPublishAnimation.startClear(player, eventDesc);
     }
 
     public static void sendPrescriptFailMessage(ServerPlayer player, PrescriptHolder currentPrescript) {
+        String eventDesc = currentPrescript != null ? currentPrescript.value().display().description().getString() : "";
+        PrescriptPublishAnimation.startError(player, eventDesc);
     }
 
     private void sendPrescriptExpireMessage(ServerPlayer player, PrescriptHolder currentPrescript) {
+        String eventDesc = currentPrescript != null ? currentPrescript.value().display().description().getString() : "";
+        PrescriptPublishAnimation.startError(player, eventDesc);
     }
 
     @SubscribeEvent
