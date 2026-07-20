@@ -40,7 +40,7 @@ public class HammerItem extends MaceItem implements IMorphDerived {
 	private final boolean canCalDamageBonus = false;
 
 	public HammerItem(Item.Properties properties) {
-		super(properties.rarity(Rarity.EPIC).durability(510).component(DataComponents.TOOL, HammerItem.createToolProperties()).repairable(BREEZE_ROD).attributes(HammerItem.createAttributes()).component(DataComponents.WEAPON, new Weapon(1)));
+		super(properties.rarity(Rarity.EPIC).component(DataComponents.TOOL, HammerItem.createToolProperties()).attributes(HammerItem.createAttributes()).component(DataComponents.WEAPON, new Weapon(1)));
 	}
 
 	public static @NotNull ItemAttributeModifiers createAttributes() {
@@ -116,6 +116,8 @@ public class HammerItem extends MaceItem implements IMorphDerived {
                     SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 0.5F, 1.5F);
             stack.set(ToListenSeawavesDataComponents.AREA_ATTACK_BONUS, AreaAttackBonusDataComponent.EMPTY);
         }
+		// Morph 5%概率 + 累积伤害切回
+		MorphItemHelper.handleMorphPostHurt(stack, target, attacker);
     }
 
 	@Override
@@ -141,6 +143,7 @@ public class HammerItem extends MaceItem implements IMorphDerived {
 		}
 		else {
 			derivedStack.remove(ToListenSeawavesDataComponents.STORED_CORE_ITEMS);
+			derivedStack.remove(ToListenSeawavesDataComponents.ACCUMULATED_DAMAGE);
 		}
 		if (coreStack.getItem() instanceof IMorphCore imc){
 			imc.appendDerivedItem(coreStack, derivedStack);

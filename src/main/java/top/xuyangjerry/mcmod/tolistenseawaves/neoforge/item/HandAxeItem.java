@@ -3,6 +3,7 @@ package top.xuyangjerry.mcmod.tolistenseawaves.neoforge.item;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ToolMaterial;
@@ -14,6 +15,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.Level;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.ModifyDefaultComponentsEvent;
+import org.jetbrains.annotations.NotNull;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.component.MorphStoredItemDataComponent;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.init.ToListenSeawavesDataComponents;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.init.ToListenSeawavesItems;
@@ -32,7 +34,7 @@ public class HandAxeItem extends AxeItem implements IMorphDerived {
 	}
 
 	@Override
-	public InteractionResult use(Level level, Player player, InteractionHand hand) {
+	public @NotNull InteractionResult use(Level level, Player player, InteractionHand hand) {
 		ItemStack derivedStack = player.getItemInHand(hand);
 		if (level.isClientSide()) { return InteractionResult.PASS; }
 		if (player.isShiftKeyDown() && !MorphItemHelper.isItemOnCooldown(player, derivedStack)) {
@@ -54,6 +56,7 @@ public class HandAxeItem extends AxeItem implements IMorphDerived {
 		}
 		else {
 			derivedStack.remove(ToListenSeawavesDataComponents.STORED_CORE_ITEMS);
+			derivedStack.remove(ToListenSeawavesDataComponents.ACCUMULATED_DAMAGE);
 		}
 		if (coreStack.getItem() instanceof IMorphCore imc){
 			imc.appendDerivedItem(coreStack, derivedStack);
@@ -73,5 +76,11 @@ public class HandAxeItem extends AxeItem implements IMorphDerived {
 	@Override
 	public void setAssociatedCoreItem(ItemStack derivedStack, ItemStack coreStack) {
 		derivedStack.set(ToListenSeawavesDataComponents.STORED_CORE_ITEMS, MorphStoredItemDataComponent.of(coreStack));
+	}
+
+	@Override
+	public void postHurtEnemy(ItemStack stack, LivingEntity target, LivingEntity attacker) {
+		super.postHurtEnemy(stack, target, attacker);
+		MorphItemHelper.handleMorphPostHurt(stack, target, attacker);
 	}
 }

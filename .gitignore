@@ -26,3 +26,5 @@ run-data
 repo
 /gradle/gradle-daemon-jvm.properties
 .vscode/
+
+104.21.89.226 maven.neoforged.net

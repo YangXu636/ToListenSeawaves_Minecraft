@@ -2,6 +2,7 @@ package top.xuyangjerry.mcmod.tolistenseawaves.neoforge.item;
 
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -60,6 +61,7 @@ public class RapierItem extends Item implements IMorphDerived {
 		}
 		else {
 			derivedStack.remove(ToListenSeawavesDataComponents.STORED_CORE_ITEMS);
+			derivedStack.remove(ToListenSeawavesDataComponents.ACCUMULATED_DAMAGE);
 		}
 		if (coreStack.getItem() instanceof IMorphCore imc){
 			imc.appendDerivedItem(coreStack, derivedStack);
@@ -79,5 +81,11 @@ public class RapierItem extends Item implements IMorphDerived {
 	@Override
 	public void setAssociatedCoreItem(ItemStack derivedStack, ItemStack coreStack) {
 		derivedStack.set(ToListenSeawavesDataComponents.STORED_CORE_ITEMS, MorphStoredItemDataComponent.of(coreStack));
+	}
+
+	@Override
+	public void postHurtEnemy(ItemStack stack, LivingEntity target, LivingEntity attacker) {
+		super.postHurtEnemy(stack, target, attacker);
+		MorphItemHelper.handleMorphPostHurt(stack, target, attacker);
 	}
 }

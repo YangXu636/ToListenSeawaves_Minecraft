@@ -4,6 +4,7 @@ import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.ToListenSeawaves;
+import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.component.AccumulatedDamageComponent;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.component.AreaAttackBonusDataComponent;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.component.MorphStoredItemDataComponent;
 import top.xuyangjerry.mcmod.tolistenseawaves.neoforge.component.PlayerPrescriptDataComponent;
@@ -38,6 +39,15 @@ public class ToListenSeawavesDataComponents {
                     builder -> builder
                             .persistent(AreaAttackBonusDataComponent.CODEC)
                             .networkSynchronized(AreaAttackBonusDataComponent.STREAM_CODEC)
+                            .cacheEncoding()
+            );
+
+    public static final Supplier<DataComponentType<AccumulatedDamageComponent>> ACCUMULATED_DAMAGE =
+            DATA_COMPONENTS.registerComponentType(
+                    "accumulated_damage",
+                    builder -> builder
+                            .persistent(AccumulatedDamageComponent.CODEC)
+                            .networkSynchronized(AccumulatedDamageComponent.STREAM_CODEC)
                             .cacheEncoding()
             );
 

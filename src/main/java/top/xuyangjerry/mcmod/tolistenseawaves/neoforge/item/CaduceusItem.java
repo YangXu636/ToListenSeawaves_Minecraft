@@ -24,7 +24,7 @@ import java.util.List;
 
 public class CaduceusItem extends Item implements IMorphCore {
 	public CaduceusItem(Properties properties) {
-		super(properties.stacksTo(1));
+		super(properties.stacksTo(1).fireResistant());
 	}
 
 	@Override
